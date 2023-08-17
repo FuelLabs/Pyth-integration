@@ -21,9 +21,10 @@ pub struct Price {
     publish_time: U256,
 }
 
+// alias for b256
 pub type PriceFeedId = b256;
 
-// PriceFeed represents a current aggregate price from pyth publisher feeds.
+// PriceFeed represents a current aggregate price from Pyth publisher feeds.
 pub struct PriceFeed {
     // The price ID.
     id: PriceFeedId,
