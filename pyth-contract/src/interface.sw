@@ -5,12 +5,12 @@ use std::{bytes::Bytes, u256::U256};
 
 abi Pyth {
     /// @notice Returns the period (in seconds) that a price feed is considered valid since its publish time
-    fn get_valid_time_period() -> U256;
+    fn valid_time_period() -> U256;
 
     /// @notice Returns the required fee to update an array of price updates.
     /// @param update_data Array of price update data.
     /// @return The required fee in Wei.
-    fn get_update_fee(update_data: Bytes) -> u64;
+    fn update_fee(update_data: Bytes) -> u64;
 
     /// @notice Update price feeds with given update messages.
     /// This method requires the caller to pay a fee in wei; the required fee can be computed by calling
@@ -43,13 +43,13 @@ abi Pyth {
     /// @dev Reverts if the price has not been updated within the last `getValidTimePeriod()` seconds.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the price and confidence interval.
     /// @return please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_price(price_feed_id: PriceFeedId) -> Price;
+    fn price(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price and confidence interval.
     /// @dev Reverts if the EMA price is not available.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the EMA price and confidence interval.
     /// @return price - please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_ema_price(price_feed_id: PriceFeedId) -> Price;
+    fn ema_price(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the price of a price feed without any sanity checks.
     /// @dev This function returns the most recent price update in this contract without any recency checks.
@@ -59,14 +59,14 @@ abi Pyth {
     /// sufficiently recent for their application. If you are considering using this function, it may be
     /// safer / easier to use either `getPrice` or `getPriceNoOlderThan`.
     /// @return price - please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_price_unsafe(price_feed_id: PriceFeedId) -> Price;
+    fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the price that is no older than `age` seconds of the current time.
     /// @dev This function is a sanity-checked version of `getPriceUnsafe` which is useful in
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
     /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
+    fn price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price of a price feed without any sanity checks.
     /// @dev This function returns the same price as `getEmaPrice` in the case where the price is available.
@@ -79,7 +79,7 @@ abi Pyth {
     /// sufficiently recent for their application. If you are considering using this function, it may be
     /// safer / easier to use either `getEmaPrice` or `getEmaPriceNoOlderThan`.
     /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_ema_price_unsafe(price_feed_id: PriceFeedId) -> Price;
+    fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price that is no older than `age` seconds
     /// of the current time.
@@ -87,7 +87,7 @@ abi Pyth {
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
     /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
-    fn get_ema_price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
+    fn ema_price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Parse `updateData` and return price feeds of the given `priceIds` if they are all published
     /// within `minPublishTime` and `maxPublishTime`.
