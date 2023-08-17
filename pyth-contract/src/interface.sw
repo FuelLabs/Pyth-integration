@@ -1,13 +1,15 @@
 library;
 
-use ::data_structures::{price::{Price, PriceFeed, PriceFeedId}};
+use ::data_structures::{data_source::DataSource, price::{Price, PriceFeed, PriceFeedId}};
 use std::{bytes::Bytes, u256::U256};
 
-abi Pyth {
+//abis: IPyth, setters, getters, governance, upgradeability
+
+abi IPyth {
     /// @notice Returns the exponentially-weighted moving average price and confidence interval.
     /// @dev Reverts if the EMA price is not available.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the EMA price and confidence interval.
-    /// @return price - please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return price - please read the documentation of data_structures::price to understand how to use this safely.
     fn ema_price(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price that is no older than `age` seconds
@@ -15,7 +17,7 @@ abi Pyth {
     /// @dev This function is a sanity-checked version of `getEmaPriceUnsafe` which is useful in
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
-    /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return  please read the documentation of data_structures::price to understand how to use this safely.
     fn ema_price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price of a price feed without any sanity checks.
@@ -28,7 +30,7 @@ abi Pyth {
     /// Users of this function should check the `publishTime` in the price to ensure that the returned price is
     /// sufficiently recent for their application. If you are considering using this function, it may be
     /// safer / easier to use either `getEmaPrice` or `getEmaPriceNoOlderThan`.
-    /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return  please read the documentation of data_structures::price to understand how to use this safely.
     fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Parse `updateData` and return price feeds of the given `priceIds` if they are all published
@@ -53,14 +55,14 @@ abi Pyth {
     /// @notice Returns the price and confidence interval.
     /// @dev Reverts if the price has not been updated within the last `getValidTimePeriod()` seconds.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the price and confidence interval.
-    /// @return please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return please read the documentation of data_structures::price to understand how to use this safely.
     fn price(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the price that is no older than `age` seconds of the current time.
     /// @dev This function is a sanity-checked version of `getPriceUnsafe` which is useful in
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
-    /// @return  please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return  please read the documentation of data_structures::price to understand how to use this safely.
     fn price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the price of a price feed without any sanity checks.
@@ -70,7 +72,7 @@ abi Pyth {
     /// Users of this function should check the `publishTime` in the price to ensure that the returned price is
     /// sufficiently recent for their application. If you are considering using this function, it may be
     /// safer / easier to use either `getPrice` or `getPriceNoOlderThan`.
-    /// @return price - please read the documentation of PythStructs.Price to understand how to use this safely.
+    /// @return price - please read the documentation of data_structures::price to understand how to use this safely.
     fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the required fee to update an array of price updates.
@@ -107,4 +109,33 @@ abi Pyth {
 
     /// @notice Returns the period (in seconds) that a price feed is considered valid since its publish time
     fn valid_time_period() -> U256;
+}
+
+abi PythSetters {
+    fn initialise(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: U256);
+}
+
+abi PythGetters {
+    fn chain_id() -> u16;
+
+    fn current_valid_data_sources() -> Vec<DataSource>;
+
+    fn hashDataSource(data_source: DataSource) -> b256;
+
+    fn latest_price_info_publish_time(price_feed_id: PriceFeedId) -> U256;
+
+    /// @notice Returns true if a price feed with the given id exists.
+    /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.
+    fn price_feed_exists(price_feed_id: PriceFeedId) -> bool;
+
+    /// @notice Returns the price feed with given id.
+    /// @dev Reverts if the price does not exist.
+    /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
+    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
+
+    fn singleUpdateFeeInWei() -> U256;
+
+    fn valid_data_source(data_source_chain_id: u16, data_source_emitter_address: b256) -> bool;
+
+    fn wormhole() -> Contract;
 }

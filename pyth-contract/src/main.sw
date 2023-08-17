@@ -5,8 +5,14 @@ mod errors;
 mod events;
 mod interface;
 
-use ::data_structures::{price::{Price, PriceFeedId}};
-use ::interface::Pyth;
+use ::data_structures::{price::{Price, PriceFeed, PriceFeedId}};
+use ::interface::{IPyth, PythGetters, PythSetters};
 
-impl Pyth for Contract {
+use std::{bytes::Bytes, u256::U256};
+
+impl IPyth for Contract {
+}
+impl PythSetters for Contract {
+}
+impl PythGetters for Contract {
 }
