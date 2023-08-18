@@ -19,7 +19,7 @@ pub struct Price {
     publish_time: u64,
 }
 
-// alias for b256
+/// The `PriceFeedId` type is an alias for `b256` that represents the id for a specific Pyth price feed.
 pub type PriceFeedId = b256;
 
 // PriceFeed represents a current aggregate price from Pyth publisher feeds.
