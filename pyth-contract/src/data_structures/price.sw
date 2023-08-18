@@ -1,7 +1,5 @@
 library;
 
-use std::u256::U256;
-
 // A price with a degree of uncertainty, represented as a price +- a confidence interval.
 //
 // The confidence interval roughly corresponds to the standard error of a normal distribution.
@@ -18,7 +16,7 @@ pub struct Price {
     // Price exponent
     exponent: u32,
     // Unix timestamp describing when the price was published
-    publish_time: U256,
+    publish_time: u64,
 }
 
 // alias for b256
