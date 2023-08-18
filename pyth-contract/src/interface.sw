@@ -1,7 +1,7 @@
 library;
 
 use ::data_structures::{data_source::DataSource, price::{Price, PriceFeed, PriceFeedId}};
-use std::{bytes::Bytes, u256::U256};
+use std::bytes::Bytes;
 
 //abis: IPyth, setters, getters, governance, upgradeability
 
@@ -18,7 +18,7 @@ abi IPyth {
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
     /// @return  please read the documentation of data_structures::price to understand how to use this safely.
-    fn ema_price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
+    fn ema_price_no_older_than(age: u64, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the exponentially-weighted moving average price of a price feed without any sanity checks.
     /// @dev This function returns the same price as `getEmaPrice` in the case where the price is available.
@@ -50,7 +50,7 @@ abi IPyth {
     /// @param min_publish_time minimum acceptable publishTime for the given `priceIds`.
     /// @param max_publish_time maximum acceptable publishTime for the given `priceIds`.
     /// @return Array of the price feeds corresponding to the given `priceIds` (with the same order).
-    fn parse_price_feed_updates(max_publish_time: U256, min_publish_time: U256, price_feed_ids: Vec<PriceFeedId>, update_data: Bytes) -> Vec<PriceFeed>;
+    fn parse_price_feed_updates(max_publish_time: u64, min_publish_time: u64, price_feed_ids: Vec<PriceFeedId>, update_data: Bytes) -> Vec<PriceFeed>;
 
     /// @notice Returns the price and confidence interval.
     /// @dev Reverts if the price has not been updated within the last `getValidTimePeriod()` seconds.
@@ -63,7 +63,7 @@ abi IPyth {
     /// applications that require a sufficiently-recent price. Reverts if the price wasn't updated sufficiently
     /// recently.
     /// @return  please read the documentation of data_structures::price to understand how to use this safely.
-    fn price_no_older_than(age: U256, price_feed_id: PriceFeedId) -> Price;
+    fn price_no_older_than(age: u64, price_feed_id: PriceFeedId) -> Price;
 
     /// @notice Returns the price of a price feed without any sanity checks.
     /// @dev This function returns the most recent price update in this contract without any recency checks.
@@ -105,14 +105,14 @@ abi IPyth {
     /// @param update_data Array of price update data.
     /// @param price_feed_ids Array of price ids.
     /// @param publish_times Array of publishTimes. `publishTimes[i]` corresponds to known `publishTime` of `priceIds[i]`
-    fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u256>, update_data: Bytes);
+    fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Bytes);
 
     /// @notice Returns the period (in seconds) that a price feed is considered valid since its publish time
-    fn valid_time_period() -> U256;
+    fn valid_time_period() -> u64;
 }
 
 abi PythSetters {
-    fn initialise(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: U256);
+    fn initialise(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: u64);
 }
 
 abi PythGetters {
@@ -122,7 +122,7 @@ abi PythGetters {
 
     fn hashDataSource(data_source: DataSource) -> b256;
 
-    fn latest_price_info_publish_time(price_feed_id: PriceFeedId) -> U256;
+    fn latest_price_info_publish_time(price_feed_id: PriceFeedId) -> u64;
 
     /// @notice Returns true if a price feed with the given id exists.
     /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.
@@ -133,7 +133,7 @@ abi PythGetters {
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
     fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
 
-    fn singleUpdateFeeInWei() -> U256;
+    fn singleUpdateFeeInWei() -> u64;
 
     fn valid_data_source(data_source_chain_id: u16, data_source_emitter_address: b256) -> bool;
 
