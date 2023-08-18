@@ -22,7 +22,7 @@ abi IPyth {
     #[storage(read)]
     fn ema_price(price_feed_id: PriceFeedId) -> Price;
 
-    /// This function Returns the exponentially-weighted moving average price that is no older than `time` seconds 
+    /// This function Returns the exponentially-weighted moving average price that is no older than `time` seconds
     /// from the current time.
     ///
     /// # Additional Information
@@ -52,7 +52,7 @@ abi IPyth {
     ///
     /// This function returns the same price as `ema_price` in the case where the price is available.
     /// However, if the price is not recent this function returns the latest available price.
-    /// 
+    ///
     /// The returned price can be from arbitrarily far in the past; this function makes no guarantees that
     /// the returned price is recent or useful for any particular application.
     ///
@@ -69,7 +69,7 @@ abi IPyth {
     /// * [Price] - Please read the documentation of data_structures::price to understand how to use this safely.
     #[storage(read)]
     fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price;
-
+    /*
     /// This function parses `update_data` and return price feeds of the given `price_feed_ids` if they are all published
     /// within `min_publish_time` and `max_publish_time`.
     ///
@@ -225,7 +225,7 @@ abi IPyth {
     /// * When the `update_data` is invalid.
     #[storage(read, write), payable]
     fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Bytes);
-
+*/
     /// This function returns the period (in seconds) that a price feed is considered valid since its publish time.
     ///
     /// # Returns
