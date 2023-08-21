@@ -32,7 +32,7 @@ abi IPyth {
     ///
     /// # Arguments
     ///
-    /// * `time`: [u64] - The time (in seconds) that a price feed must have been published after.
+    /// * `time_period`: [u64] - The period (in seconds) that a price feed is considered valid since its publish time.
     /// * `price_feed_id`: [PriceFeedId] - The Pyth Price Feed ID of which to fetch the EMA price and confidence interval.
     ///
     /// # Returns
@@ -44,7 +44,7 @@ abi IPyth {
     /// * When the EMA price is not available.
     /// * When the the EMA price wasn't updated recently enough.
     #[storage(read)]
-    fn ema_price_no_older_than(time: u64, price_feed_id: PriceFeedId) -> Price;
+    fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the exponentially-weighted moving average price of a price feed without any sanity checks.
     ///
@@ -129,7 +129,7 @@ abi IPyth {
     ///
     /// # Arguments
     ///
-    /// * `time`: [u64] - The time (in seconds) that a price feed must have been published after.
+    /// * `time_period`: [u64] - The period (in seconds) that a price feed is considered valid since its publish time.
     /// * `price_feed_id`: [PriceFeedId] - The Pyth Price Feed ID of which to fetch the EMA price and confidence interval.
     ///
     /// # Returns
@@ -141,7 +141,7 @@ abi IPyth {
     /// * When the price is not available.
     /// * When the price wasn't updated recently enough.
     #[storage(read)]
-    fn price_no_older_than(time: u64, price_feed_id: PriceFeedId) -> Price;
+    fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
   
     /// This function returns the price of a price feed without any sanity checks.
     ///
