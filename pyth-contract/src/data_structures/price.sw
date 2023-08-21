@@ -47,3 +47,17 @@ pub struct PriceFeed {
     // Latest available price
     price: Price,
 }
+
+impl PriceFeed {
+    pub fn new(
+        ema_price: Price,
+        id: PriceFeedId,
+       price: Price,
+    ) -> Self {
+        Self {
+            ema_price,
+            id,
+            price
+        }
+    }
+}
