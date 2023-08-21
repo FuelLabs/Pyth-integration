@@ -156,14 +156,7 @@ impl IPyth for Contract {
 
 
 
-
-
-
-
-
-
-
-/// IPyth PRIVATE FUNCTIONS \\\
+/// IPyth PRIVATE FUNCTIONS ///
 #[storage(read)]
 fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
     let price = ema_price_unsafe(price_feed_id);
