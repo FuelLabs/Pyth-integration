@@ -69,8 +69,8 @@ abi IPyth {
     /// * [Price] - Please read the documentation of data_structures::price to understand how to use this safely.
     #[storage(read)]
     fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price;
-    /*
-    /// This function parses `update_data` and return price feeds of the given `price_feed_ids` if they are all published
+
+    /// This function parses `update_data` and returns price feeds of the given `price_feed_ids` if they are all published
     /// within `min_publish_time` and `max_publish_time`.
     ///
     /// # Additional Information
@@ -94,11 +94,11 @@ abi IPyth {
     ///
     /// # Reverts
     ///
-    /// * When the transferred fee is not sufficient 
-    /// * When the update_data is invalid 
+    /// * When the transferred fee is not sufficient
+    /// * When the update_data is invalid
     /// * When there is no update for any of the given `priceIds` within the given time range.
     #[storage(read, write), payable]
-    fn parse_price_feed_updates(max_publish_time: u64, min_publish_time: u64, price_feed_ids: Vec<PriceFeedId>, update_data: Bytes) -> Vec<PriceFeed>;
+    fn parse_price_feed_updates(max_publish_time: u64, min_publish_time: u64, price_feed_ids: Vec<PriceFeedId>, update_data: Vec<Bytes>) -> Vec<PriceFeed>;
 
     /// This function returns the price and confidence interval.
     ///
@@ -117,14 +117,14 @@ abi IPyth {
     /// # Reverts
     ///
     /// * When the price has not been updated within the last valid time period.
-    #[storage(read)]
-    fn price(price_feed_id: PriceFeedId) -> Price;
+    // #[storage(read)]
+    // fn price(price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the price that is no older than `time` seconds of the current time.
     ///
     /// # Additional Information
     ///
-    /// This function is a sanity-checked version of `price_unsafe` which is useful in applications that require a 
+    /// This function is a sanity-checked version of `price_unsafe` which is useful in applications that require a
     /// sufficiently-recent price. Reverts if the price wasn't updated sufficiently recently.
     ///
     /// # Arguments
@@ -140,9 +140,9 @@ abi IPyth {
     ///
     /// * When the price is not available.
     /// * When the price wasn't updated recently enough.
-    #[storage(read)]
-    fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
-  
+    // #[storage(read)]
+    // fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
+
     /// This function returns the price of a price feed without any sanity checks.
     ///
     /// # Additional Information
@@ -161,8 +161,8 @@ abi IPyth {
     /// # Returns
     ///
     /// * [Price] - Please read the documentation of data_structures::price to understand how to use this safely.
-    #[storage(read)]
-    fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
+    // #[storage(read)]
+    // fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the required fee in Wei to update an array of price updates.
     ///
@@ -174,7 +174,7 @@ abi IPyth {
     ///
     /// * [u64] - The required fee in Wei.
     #[storage(read)]
-    fn update_fee(update_data: Bytes) -> u64;
+    fn update_fee(update_data: Vec<Bytes>) -> u64;
 
     /// This function updates price feeds with the given update messages.
     ///
@@ -193,8 +193,8 @@ abi IPyth {
     ///
     /// * When the transferred fee is not sufficient.
     /// * When the `update_data` is invalid.
-    #[storage(read, write), payable]
-    fn update_price_feeds(update_data: Bytes);
+    // #[storage(read, write), payable]
+    // fn update_price_feeds(update_data: Vec<Bytes>);
 
     /// This function is a wrapper around `update_price_feeds` that reverts fast if a price update is not necessary.
     ///
@@ -223,9 +223,9 @@ abi IPyth {
     /// * When update is not necessary.
     /// * When the transferred fee is not sufficient.
     /// * When the `update_data` is invalid.
-    #[storage(read, write), payable]
-    fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Bytes);
-*/
+    // #[storage(read, write), payable]
+    // fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Vec<Bytes>);
+
     /// This function returns the period (in seconds) that a price feed is considered valid since its publish time.
     ///
     /// # Returns
