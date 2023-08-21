@@ -4,17 +4,34 @@ mod data_structures;
 mod errors;
 mod events;
 mod interface;
+mod pyth_accumulator;
 mod utils;
 
-use ::data_structures::{data_source::DataSource, price::{Price, PriceFeed, PriceFeedId}};
+use ::data_structures::{
+    data_source::DataSource,
+    price::{
+        Price,
+        PriceFeed,
+        PriceFeedId,
+    },
+    pyth_accumulator::UpdateType,
+};
 use ::errors::{PythError};
 use ::interface::{IPyth, PythGetters, PythSetters};
-use ::utils::difference;
+use ::pyth_accumulator::{
+    ACCUMULATOR_MAGIC,
+    accumulator_magic_bytes,
+    extract_price_feed_from_merkle_proof,
+    extract_update_type_from_accumulator_header,
+    parse_wormhole_merkle_header_updates,
+};
+use ::utils::{difference, find_index_of_price_feed_id};
 
 use std::{
     block::timestamp,
     bytes::Bytes,
     constants::ZERO_B256,
+    context::msg_amount,
     storage::{
         storage_map::StorageMap,
         storage_vec::StorageVec,
@@ -23,7 +40,7 @@ use std::{
 };
 
 storage {
-    ///PythState\\\
+    /// PythState ///
     // Mapping of cached price information
     // priceId => PriceInfo
     latest_price_info: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
@@ -98,4 +115,17 @@ fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price {
 #[storage(read)]
 fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
+}
+
+/// GENERAL PRIVATE FUNCTIONS ///
+#[storage(read)]
+fn total_fee(total_number_of_updates: u64) -> u64 {
+    total_number_of_updates * storage.single_update_fee_in_wei.read()
+}
+
+/// PYTH ACCUMULATOR PRIVATE FUNCTIONS ///
+#[storage(read)]
+extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(accumulator_update: Bytes, encoded_offset: u64) -> (u64, Bytes, u64, Bytes) {
+    //TMP
+    (1u64, Bytes::new(), 1u64, Bytes::new())
 }
