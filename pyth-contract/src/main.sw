@@ -113,6 +113,30 @@ fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price {
 }
 
 #[storage(read)]
+fn update_fee(update_data: Vec<Bytes>) -> u64 {
+    let mut total_number_of_updates = 0;
+    let mut index = 0;
+    let update_data_length = update_data.len;
+    while index < update_data_length {
+        let data = update_data.get(index).unwrap();
+
+        if data.len > 4
+            && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC)
+        {
+            let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
+
+            total_number_of_updates += parse_wormhole_merkle_header_updates(offset, data);
+        } else {
+            total_number_of_updates += 1;
+        }
+
+        index += 1;
+    }
+
+    total_fee(total_number_of_updates)
+}
+
+#[storage(read)]
 fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
 }
