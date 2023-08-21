@@ -4,7 +4,7 @@ pub fn difference(x: u64, y: u64) -> u64 {
     if x > y { x - y } else { y - x }
 }
 
-pub fn  find_index_of_price_feed_id(
+pub fn find_index_of_price_feed_id(
         price_feed_ids: Vec<PriceFeedId>
         target_price_feed_id: PriceFeedId
     ) -> (u64) {
