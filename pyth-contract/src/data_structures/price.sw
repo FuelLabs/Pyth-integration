@@ -49,15 +49,11 @@ pub struct PriceFeed {
 }
 
 impl PriceFeed {
-    pub fn new(
-        ema_price: Price,
-        id: PriceFeedId,
-       price: Price,
-    ) -> Self {
+    pub fn new(ema_price: Price, id: PriceFeedId, price: Price) -> Self {
         Self {
             ema_price,
             id,
-            price
+            price,
         }
     }
 }
