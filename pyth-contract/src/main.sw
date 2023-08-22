@@ -91,22 +91,49 @@ impl IPyth for Contract {
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-        let price_feeds: Vec<PriceFeed> = Vec::with_capacity(price_feed_ids.len);
+        let mut price_feeds: Vec<PriceFeed> = Vec::with_capacity(price_feed_ids.len);
 
         let mut index = 0;
         let update_data_length = update_data.len;
         while index < update_data_length {
             let data = update_data.get(index).unwrap();
 
-            if data.len > 4
-                && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC)
-            {
+            if data.len > 4 && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC) {
                 let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
 
                 let (offset, digest, number_of_updates, encoded) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(data, offset);
 
                 let mut index_2 = 0;
                 while index_2 < number_of_updates {
+                    let (_offset, price_feed, price_feed_id) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
+
+                    // check whether caller requested for this data
+                    let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
+
+                    // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
+                    // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
+                    if price_feed_id_index == price_feed_ids.len
+                        || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
+                    {
+                        continue;
+                    }
+
+                    // Check the publish time of the price is within the given range
+                    // and only fill PriceFeed if it is.
+                    // If it is not, default id value of 0 will still be set and
+                    // this will allow other updates for this price id to be processed.
+                    if price_feed.price.publish_time >= min_publish_time
+                        && price_feed.price.publish_time <= max_publish_time
+                    {
+                        price_feeds.push(price_feed)
+                    }
+
+                    index_2 += 1;
+                }
+                require(offset == encoded.len, PythError::InvalidUpdateData);
+            } else {
+                let vm = parse_and_verify_batch_attestation_VM(data);
+                let encoded_payload = vm.payload;
 
                     let (offset, price_feed, price_feed_id) = extract_price_feed_from_merkle_proof(
                             digest,
