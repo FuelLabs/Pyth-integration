@@ -8,4 +8,5 @@ pub enum PythError {
     OutdatedPrice: (),
     /// Emitted when a PriceFeed could not be retrived.
     PriceFeedNotFound: (),
+    PriceFeedNotFoundWithinRange: (),
 }
