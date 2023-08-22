@@ -193,6 +193,21 @@ impl IPyth for Contract {
     }
 
     #[storage(read)]
+    fn price(price_feed_id: PriceFeedId) -> Price {
+        price_no_older_than(valid_time_period(), price_feed_id)
+    }
+
+    #[storage(read)]
+    fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
+        price_no_older_than(time_period, price_feed_id)
+    }
+
+    #[storage(read)]
+    fn price_unsafe(price_feed_id: PriceFeedId) -> Price {
+        price_unsafe(price_feed_id)
+    }
+
+    #[storage(read)]
     fn update_fee(update_data: Vec<Bytes>) -> u64 {
         update_fee(update_data)
     }
@@ -206,6 +221,7 @@ impl IPyth for Contract {
 // }
 // impl PythGetters for Contract {
 // }
+
 
 /// IPyth PRIVATE FUNCTIONS ///
 #[storage(read)]
@@ -223,6 +239,23 @@ fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price {
     require(price_feed.is_some(), PythError::PriceFeedNotFound);
 
     price_feed.unwrap().ema_price
+}
+
+#[storage(read)]
+fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
+    let price = price_unsafe(price_feed_id);
+
+    require(difference(timestamp(), price.publish_time) <= time_period, PythError::OutdatedPrice);
+
+    price
+}
+
+#[storage(read)]
+fn price_unsafe(price_feed_id: PriceFeedId) -> Price {
+    let price_feed = storage.latest_price_info.get(price_feed_id).try_read();
+    require(price_feed.is_some(), PythError::PriceFeedNotFound);
+
+    price_feed.unwrap().price
 }
 
 #[storage(read)]

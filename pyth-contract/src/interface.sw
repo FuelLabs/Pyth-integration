@@ -117,8 +117,8 @@ abi IPyth {
     /// # Reverts
     ///
     /// * When the price has not been updated within the last valid time period.
-    // #[storage(read)]
-    // fn price(price_feed_id: PriceFeedId) -> Price;
+    #[storage(read)]
+    fn price(price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the price that is no older than `time` seconds of the current time.
     ///
@@ -140,8 +140,8 @@ abi IPyth {
     ///
     /// * When the price is not available.
     /// * When the price wasn't updated recently enough.
-    // #[storage(read)]
-    // fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
+    #[storage(read)]
+    fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the price of a price feed without any sanity checks.
     ///
@@ -161,8 +161,8 @@ abi IPyth {
     /// # Returns
     ///
     /// * [Price] - Please read the documentation of data_structures::price to understand how to use this safely.
-    // #[storage(read)]
-    // fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
+    #[storage(read)]
+    fn price_unsafe(price_feed_id: PriceFeedId) -> Price;
 
     /// This function returns the required fee in Wei to update an array of price updates.
     ///
