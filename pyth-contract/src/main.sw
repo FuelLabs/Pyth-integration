@@ -5,6 +5,7 @@ mod errors;
 mod events;
 mod interface;
 mod pyth_accumulator;
+mod pyth_batch;
 mod utils;
 
 use ::data_structures::{
@@ -15,6 +16,10 @@ use ::data_structures::{
         PriceFeedId,
     },
     pyth_accumulator::UpdateType,
+    wormhole::{
+        Signature,
+        VM,
+    },
 };
 use ::errors::{PythError};
 use ::interface::{IPyth, PythGetters, PythSetters};
@@ -25,6 +30,7 @@ use ::pyth_accumulator::{
     extract_update_type_from_accumulator_header,
     parse_wormhole_merkle_header_updates,
 };
+use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
 use ::utils::{difference, find_index_of_price_feed_id};
 
 use std::{
