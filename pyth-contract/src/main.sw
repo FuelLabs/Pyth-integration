@@ -176,7 +176,6 @@ impl IPyth for Contract {
                     attestation_index += attestation_size;
                     index_2 += 1;
                 }
-                require(offset == encoded.len, PythError::InvalidUpdateData);
             }
 
             index += 1;
@@ -207,8 +206,6 @@ impl IPyth for Contract {
 // }
 // impl PythGetters for Contract {
 // }
-
-
 
 /// IPyth PRIVATE FUNCTIONS ///
 #[storage(read)]
@@ -265,7 +262,36 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 
 /// PYTH ACCUMULATOR PRIVATE FUNCTIONS ///
 #[storage(read)]
-extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(accumulator_update: Bytes, encoded_offset: u64) -> (u64, Bytes, u64, Bytes) {
+fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
+    accumulator_update: Bytes,
+    encoded_offset: u64,
+) -> (u64, Bytes, u64, Bytes) {
     //TMP
     (1u64, Bytes::new(), 1u64, Bytes::new())
+}
+
+/// PYTH BATCH PRICE PRIVATE FUNCTIONS ///
+#[storage(read)]
+fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
+    //TMP
+    let mut signatures = Vec::new();
+    signatures.push(Signature {
+        r: ZERO_B256,
+        s: ZERO_B256,
+        v: 1u8,
+        guardian_index: 1u8,
+    });
+    VM {
+        version: 1u8,
+        timestamp: 1u32,
+        nonce: 1u32,
+        emitter_chain_id: 1u16,
+        emitter_address: ZERO_B256,
+        sequence: 1u64,
+        consistency_level: 1u8,
+        payload: Bytes::new(),
+        guardian_set_index: 1u32,
+        signatures,
+        hash: ZERO_B256,
+    }
 }
