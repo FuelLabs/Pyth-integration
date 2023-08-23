@@ -1,7 +1,7 @@
 library;
 
 use ::data_structures::{data_source::DataSource, price::{Price, PriceFeed, PriceFeedId}};
-use std::bytes::Bytes;
+use std::{bytes::Bytes, storage::storage_vec::*};
 
 //abis: IPyth, setters, getters, governance, upgradeability
 
@@ -241,26 +241,30 @@ abi PythSetters {
 }
 
 abi PythGetters {
+    #[storage(read)]
     fn chain_id() -> u16;
 
-    fn current_valid_data_sources() -> Vec<DataSource>;
+    #[storage(read)]
+    fn current_valid_data_sources() -> StorageVec<DataSource>;
 
-    fn hashDataSource(data_source: DataSource) -> b256;
+    //TODO uncomment when Hash is included in release
+    // fn hashDataSource(data_source: DataSource) -> b256;
 
-    fn latest_price_info_publish_time(price_feed_id: PriceFeedId) -> u64;
+    #[storage(read)]
+    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64;
 
     /// @notice Returns true if a price feed with the given id exists.
     /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.
+    #[storage(read)]
     fn price_feed_exists(price_feed_id: PriceFeedId) -> bool;
 
     /// @notice Returns the price feed with given id.
     /// @dev Reverts if the price does not exist.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
+    #[storage(read)]
     fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
 
-    fn singleUpdateFeeInWei() -> u64;
-
-    fn valid_data_source(data_source_chain_id: u16, data_source_emitter_address: b256) -> bool;
-
-    fn wormhole() -> Contract;
+    //TODO uncomment when Hash is included in release
+    // #[storage(read)]
+    // fn valid_data_source(data_source_chain_id: u16, data_source_emitter_address: b256) -> bool;
 }
