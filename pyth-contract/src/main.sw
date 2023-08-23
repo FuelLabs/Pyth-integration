@@ -48,7 +48,10 @@ use std::{
 };
 
 storage {
-    /// PythState ///
+    //////////////////
+    /// PYTH STATE ///
+    //////////////////
+
     // Mapping of cached price information
     // priceId => PriceInfo
     latest_price_feed: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
@@ -65,7 +68,11 @@ storage {
     wormhole_contract_id: ContractId = ContractId {
         value: ZERO_B256,
     },
-    /// WORMHOLE HOLE STATE ///
+
+    ///////////////////////
+    ///  WORMHOLE STATE ///
+    ///////////////////////
+    
     //
     provider: Provider = Provider {
         chain_id: 0,
@@ -350,7 +357,9 @@ impl PythGetters for Contract {
     // }
 }
 
-/// IPyth PRIVATE FUNCTIONS ///
+///////////////////////////////
+/// IPYTH PRIVATE FUNCTIONS ///
+///////////////////////////////
 #[storage(read)]
 fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
     let price = ema_price_unsafe(price_feed_id);
@@ -440,13 +449,17 @@ fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
 }
 
+/////////////////////////////////
 /// GENERAL PRIVATE FUNCTIONS ///
+/////////////////////////////////
 #[storage(read)]
 fn total_fee(total_number_of_updates: u64) -> u64 {
     total_number_of_updates * storage.single_update_fee_in_wei.read()
 }
 
+//////////////////////////////////////////
 /// PYTH ACCUMULATOR PRIVATE FUNCTIONS ///
+//////////////////////////////////////////
 #[storage(read)]
 fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
     accumulator_update: Bytes,
@@ -463,7 +476,9 @@ fn update_price_feeds_from_accumulator_update(accumulator_update: Bytes) -> u64 
     //internally check is each update is necessary
 }
 
+//////////////////////////////////////////
 /// PYTH BATCH PRICE PRIVATE FUNCTIONS ///
+//////////////////////////////////////////
 #[storage(read)]
 fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
     //TMP
@@ -494,7 +509,9 @@ fn update_price_batch_from_vm(encoded_vm: Bytes) {
     //TMP
 }
 
-/// PYTH GETTERS PRIVATE FUNCTIONS ///
+//////////////////////////////////////
+/// PYTHGETTERS PRIVATE FUNCTIONS ///
+//////////////////////////////////////
 #[storage(read)]
 fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
     match storage.latest_price_feed.get(price_feed_id).try_read() {
