@@ -307,12 +307,48 @@ impl PythSetters for Contract {
         storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
     }
 }
-// impl PythGetters for Contract {
-// }
 
+impl PythGetters for Contract {
+    #[storage(read)]
+    fn chain_id() -> u16 {
+        storage.provider.read().chain_id
+    }
 
+    #[storage(read)]
+    fn current_valid_data_sources() -> StorageVec<DataSource> {
+        storage.valid_data_sources.read()
+    }
 
+    //TODO uncomment when Hash is included in release
+    // fn hash_data_source(data_source: DataSource) -> b256 {
+    //     data_source.hash()
+    // }
 
+    #[storage(read)]
+    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+        latest_price_feed_publish_time(price_feed_id)
+    }
+
+    #[storage(read)]
+    fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
+        latest_price_feed_publish_time(price_feed_id) != 0
+    }
+
+    #[storage(read)]
+    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
+        let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
+        require(price_feed.is_some(), PythError::PriceFeedNotFound);
+        price_feed.unwrap()
+    }
+
+    //TODO uncomment when Hash is included in release
+    // #[storage(read)]
+    // fn valid_data_source(data_source: DataSource) -> bool {
+    //     storage.is_valid_data_source.get(
+    //             data_source.hash()
+    //         ).try_read().unwrap()
+    // }
+}
 
 /// IPyth PRIVATE FUNCTIONS ///
 #[storage(read)]
@@ -404,29 +440,6 @@ fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
 }
 
-/// PYTH GETTERS ///
-#[storage(read)]
-fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
-    match storage.latest_price_feed.get(price_feed_id).try_read() {
-        Some(price_feed) => price_feed.price.publish_time,
-        None => 0,
-    }
-}
-
-//TODO uncomment when Hash is included in release
-// #[storage(read)]
-// fn valid_data_source(data_source: DataSource) -> bool {
-//      storage.is_valid_data_source.get(
-//         data_source.hash()
-//     ).try_read().unwrap()
-
-// }
-
-
-
-
-
-
 /// GENERAL PRIVATE FUNCTIONS ///
 #[storage(read)]
 fn total_fee(total_number_of_updates: u64) -> u64 {
@@ -479,4 +492,13 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) {
     //TMP
+}
+
+/// PYTH GETTERS PRIVATE FUNCTIONS ///
+#[storage(read)]
+fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+    match storage.latest_price_feed.get(price_feed_id).try_read() {
+        Some(price_feed) => price_feed.price.publish_time,
+        None => 0,
+    }
 }
