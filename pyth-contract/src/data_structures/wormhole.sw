@@ -1,6 +1,17 @@
 library;
 
-use std::bytes::Bytes;
+use std::{bytes::Bytes, storage::storage_vec::*};
+
+pub struct GuardianSet {
+    exexpiration_time: u32,
+    keys: StorageVec<b256>,
+}
+
+pub struct Provider {
+    chain_id: u16,
+    governance_chain_id: u16,
+    governance_contract: b256,
+}
 
 pub struct Signature {
     r: b256,
