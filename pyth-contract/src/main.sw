@@ -40,7 +40,7 @@ use std::{
     context::msg_amount,
     storage::{
         storage_map::StorageMap,
-        storage_vec::StorageVec,
+        storage_vec::*,
     },
     u256::U256,
 };
@@ -60,7 +60,7 @@ storage {
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
     valid_time_period_seconds: u64 = 1,
-    wormhole: ContractId = ContractId {
+    wormhole_contract_id: ContractId = ContractId {
         value: ZERO_B256,
     },
 }
@@ -243,8 +243,47 @@ impl IPyth for Contract {
         valid_time_period()
     }
 }
-// impl PythSetters for Contract {
-// }
+
+impl PythSetters for Contract {
+    #[storage(read, write)]
+    fn initialise(
+        wormhole_contract_id: ContractId,
+        data_source_emitter_chain_ids: Vec<u16>,
+        data_source_emitter_addresses: Vec<b256>,
+        governance_emitter_chainId: u16,
+        governance_emitter_address: b256,
+        governance_initial_sequence: u64,
+        valid_time_period_seconds: u64,
+        single_update_fee_in_wei: u64,
+    ) {
+        require(data_source_emitter_chain_ids.len == data_source_emitter_addresses.len, PythError::InvalidArgument);
+
+        storage.wormhole_contract_id.write(wormhole_contract_id);
+
+        let mut index = 0;
+        let data_source_emitter_chain_ids_length = data_source_emitter_chain_ids.len;
+        while index < data_source_emitter_chain_ids_length {
+            let data_source = DataSource::new(data_source_emitter_chain_ids.get(index).unwrap(), data_source_emitter_addresses.get(index).unwrap());
+
+            // NOTE: Unsure if necessary, but present in the Solidity version. Is it possible to be anything other than false upon deployment
+            // require(valid_data_source(data_source.chain_id, data_source.emitter_address) == false, PythErrors::InvalidArgument);
+
+            //TODO uncomment when Hash is included in release
+            // storage.is_valid_data_source.insert(data_source.hash(), true);
+
+            storage.valid_data_sources.push(data_source);
+
+            index += 1;
+        }
+        // TODO: implement/ refactor with governance module
+        // let governance_data_source = DataSource::new(governance_emitter_chainId, governance_emitter_address);
+        // set_governance_data_source(governance_data_source);
+        // set_last_executed_governance_sequence(governance_initial_sequence);
+
+        storage.valid_time_period_seconds.write(valid_time_period_seconds);
+        storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
+    }
+}
 // impl PythGetters for Contract {
 // }
 
@@ -350,6 +389,20 @@ fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
         None => 0,
     }
 }
+
+//TODO uncomment when Hash is included in release
+// #[storage(read)]
+// fn valid_data_source(data_source: DataSource) -> bool {
+//      storage.is_valid_data_source.get(
+//         data_source.hash()
+//     ).try_read().unwrap()
+
+// }
+
+
+
+
+
 
 /// GENERAL PRIVATE FUNCTIONS ///
 #[storage(read)]
