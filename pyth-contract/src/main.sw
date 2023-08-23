@@ -17,6 +17,8 @@ use ::data_structures::{
     },
     pyth_accumulator::UpdateType,
     wormhole::{
+        GuardianSet,
+        Provider,
         Signature,
         VM,
     },
@@ -50,7 +52,7 @@ storage {
     // Mapping of cached price information
     // priceId => PriceInfo
     latest_price_feed: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
-    single_update_fee_in_wei: u64 = 1,
+    single_update_fee_in_wei: u64 = 0,
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
     is_valid_data_source: StorageMap<b256, bool> = StorageMap {},
@@ -59,10 +61,31 @@ storage {
     /// Maximum acceptable time period before price is considered to be stale.
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
-    valid_time_period_seconds: u64 = 1,
+    valid_time_period_seconds: u64 = 0,
     wormhole_contract_id: ContractId = ContractId {
         value: ZERO_B256,
     },
+    /// WORMHOLE HOLE STATE ///
+    //
+    provider: Provider = Provider {
+        chain_id: 0,
+        governance_chain_id: 0,
+        governance_contract: ZERO_B256,
+    },
+    // Mapping of guardian_set_index => guardian set
+    guardian_sets: StorageMap<u32, GuardianSet> = StorageMap {},
+    // Current active guardian set index
+    guardian_set_index: u32 = 0,
+    // Period for which a guardian set stays active after it has been replaced
+    guardian_set_expiry: u32 = 0,
+    // Sequence numbers per emitter
+    sequences: StorageMap<b256, u64> = StorageMap {},
+    // Mapping of consumed governance actions
+    consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
+    // Mapping of initialized implementations
+    initialized_implementations: StorageMap<b256, bool> = StorageMap {},
+    //
+    message_fee: u64 = 0,
 }
 
 impl IPyth for Contract {
