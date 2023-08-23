@@ -49,7 +49,7 @@ storage {
     /// PythState ///
     // Mapping of cached price information
     // priceId => PriceInfo
-    latest_price_info: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
+    latest_price_feed: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
     single_update_fee_in_wei: u64 = 1,
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
@@ -212,6 +212,32 @@ impl IPyth for Contract {
         update_fee(update_data)
     }
 
+    #[storage(read, write), payable]
+    fn update_price_feeds(update_data: Vec<Bytes>) {
+        update_price_feeds(update_data)
+    }
+
+    #[storage(read, write), payable]
+    fn update_price_feeds_if_necessary(
+        price_feed_ids: Vec<PriceFeedId>,
+        publish_times: Vec<u64>,
+        update_data: Vec<Bytes>,
+    ) {
+        require(price_feed_ids.len == publish_times.len, PythError::InvalidArgument);
+
+        let mut index = 0;
+        let price_feed_ids_length = price_feed_ids.len;
+        while index < price_feed_ids_length {
+            if latest_price_feed_publish_time(price_feed_ids.get(index).unwrap()) < publish_times.get(index).unwrap()
+            {
+                update_price_feeds(update_data);
+                return;
+            }
+
+            index += 1;
+        }
+    }
+
     #[storage(read)]
     fn valid_time_period() -> u64 {
         valid_time_period()
@@ -221,6 +247,9 @@ impl IPyth for Contract {
 // }
 // impl PythGetters for Contract {
 // }
+
+
+
 
 
 /// IPyth PRIVATE FUNCTIONS ///
@@ -235,7 +264,7 @@ fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Pric
 
 #[storage(read)]
 fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price {
-    let price_feed = storage.latest_price_info.get(price_feed_id).try_read();
+    let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
     require(price_feed.is_some(), PythError::PriceFeedNotFound);
 
     price_feed.unwrap().ema_price
@@ -252,7 +281,7 @@ fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
 
 #[storage(read)]
 fn price_unsafe(price_feed_id: PriceFeedId) -> Price {
-    let price_feed = storage.latest_price_info.get(price_feed_id).try_read();
+    let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
     require(price_feed.is_some(), PythError::PriceFeedNotFound);
 
     price_feed.unwrap().price
@@ -282,9 +311,44 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
     total_fee(total_number_of_updates)
 }
 
+#[storage(read, write), payable]
+fn update_price_feeds(update_data: Vec<Bytes>) {
+    let mut total_number_of_updates = 0;
+
+    let mut index = 0;
+    let update_data_length = update_data.len;
+    while index < update_data_length {
+        let data = update_data.get(index).unwrap();
+
+        // TODO; refactor into function - accumulator() -> bool
+        if data.len > 4
+            && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC)
+        {
+            total_number_of_updates += update_price_feeds_from_accumulator_update(data);
+        } else {
+            update_price_batch_from_vm(data);
+            total_number_of_updates += 1;
+        }
+
+        index += 1;
+    }
+
+    let required_fee = total_fee(total_number_of_updates);
+    require(msg_amount() >= required_fee, PythError::InsufficientFee);
+}
+
 #[storage(read)]
 fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
+}
+
+/// PYTH GETTERS ///
+#[storage(read)]
+fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+    match storage.latest_price_feed.get(price_feed_id).try_read() {
+        Some(price_feed) => price_feed.price.publish_time,
+        None => 0,
+    }
 }
 
 /// GENERAL PRIVATE FUNCTIONS ///
@@ -301,6 +365,13 @@ fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumu
 ) -> (u64, Bytes, u64, Bytes) {
     //TMP
     (1u64, Bytes::new(), 1u64, Bytes::new())
+}
+
+#[storage(read, write)]
+fn update_price_feeds_from_accumulator_update(accumulator_update: Bytes) -> u64 {
+    //TMP
+    1u64
+    //internally check is each update is necessary
 }
 
 /// PYTH BATCH PRICE PRIVATE FUNCTIONS ///
@@ -327,4 +398,9 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
         signatures,
         hash: ZERO_B256,
     }
+}
+
+#[storage(read, write)]
+fn update_price_batch_from_vm(encoded_vm: Bytes) {
+    //TMP
 }

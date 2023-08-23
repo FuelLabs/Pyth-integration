@@ -193,8 +193,8 @@ abi IPyth {
     ///
     /// * When the transferred fee is not sufficient.
     /// * When the `update_data` is invalid.
-    // #[storage(read, write), payable]
-    // fn update_price_feeds(update_data: Vec<Bytes>);
+    #[storage(read, write), payable]
+    fn update_price_feeds(update_data: Vec<Bytes>);
 
     /// This function is a wrapper around `update_price_feeds` that reverts fast if a price update is not necessary.
     ///
@@ -223,8 +223,8 @@ abi IPyth {
     /// * When update is not necessary.
     /// * When the transferred fee is not sufficient.
     /// * When the `update_data` is invalid.
-    // #[storage(read, write), payable]
-    // fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Vec<Bytes>);
+    #[storage(read, write), payable]
+    fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Vec<Bytes>);
 
     /// This function returns the period (in seconds) that a price feed is considered valid since its publish time.
     ///

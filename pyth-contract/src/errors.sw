@@ -3,6 +3,7 @@ library;
 /// Error log for a Pyth oracle revert.
 pub enum PythError {
     InsufficientFee: (),
+    InvalidArgument: (),
     InvalidUpdateData: (),
     /// Emitted when a Price's `publish_time` is stale.
     OutdatedPrice: (),
