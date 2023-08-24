@@ -1,5 +1,6 @@
 library;
 
-pub enum UpdateType {
+// consider removal/ replacement
+pub enum AccumulatorUpdateType {
     WormholeMerkle: (),
 }

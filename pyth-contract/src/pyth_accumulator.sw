@@ -1,13 +1,19 @@
 library;
 
-use ::data_structures::{price::{Price, PriceFeed, PriceFeedId}, pyth_accumulator::UpdateType};
+use ::data_structures::{
+    price::{
+        Price,
+        PriceFeed,
+        PriceFeedId,
+    },
+    pyth_accumulator::AccumulatorUpdateType,
+};
 
 use std::{bytes::Bytes, constants::ZERO_B256};
 
-pub const ACCUMULATOR_MAGIC: u32 = 0x504e4155;
-
-pub fn accumulator_magic_bytes(accumulator_magic: u32) -> Bytes {
-    let accumulator_magic_array = accumulator_magic.to_be_bytes();
+pub const ACCUMULATOR_MAGIC: u32 = 0x504e4155; // Consider const as bytes
+pub fn accumulator_magic_bytes() -> Bytes {
+    let accumulator_magic_array = ACCUMULATOR_MAGIC.to_be_bytes();
 
     let mut accumulator_magic_bytes = Bytes::with_capacity(4);
     accumulator_magic_bytes.push(accumulator_magic_array[0]);
@@ -23,7 +29,7 @@ pub fn extract_price_feed_from_merkle_proof(
     encoded: Bytes,
     offset: u64,
 ) -> (u64, PriceFeed, PriceFeedId) {
-    //TMP
+    //PLACEHOLDER 
     let price = Price {
         confidence: 0,
         exponent: 0,
@@ -38,12 +44,14 @@ pub fn extract_price_feed_from_merkle_proof(
     (1u64, price_feed, ZERO_B256)
 }
 
-pub fn extract_update_type_from_accumulator_header(accumulator_update: Bytes) -> (u64, UpdateType) {
-    //TMP
-    (1u64, UpdateType::WormholeMerkle)
+pub fn extract_update_type_from_accumulator_header(
+    accumulator_update: Bytes,
+) -> (u64, AccumulatorUpdateType) {
+    //PLACEHOLDER 
+    (1u64, AccumulatorUpdateType::WormholeMerkle)
 }
 
 pub fn parse_wormhole_merkle_header_updates(offset: u64, wormhole_merkle_update: Bytes) -> u64 {
-    //TMP
+    //PLACEHOLDER 
     1u64
 }
