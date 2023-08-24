@@ -97,7 +97,7 @@ abi IPyth {
     /// * When the transferred fee is not sufficient
     /// * When the update_data is invalid
     /// * When there is no update for any of the given `priceIds` within the given time range.
-    #[storage(read, write), payable]
+    #[storage(read), payable]
     fn parse_price_feed_updates(max_publish_time: u64, min_publish_time: u64, price_feed_ids: Vec<PriceFeedId>, update_data: Vec<Bytes>) -> Vec<PriceFeed>;
 
     /// This function returns the price and confidence interval.

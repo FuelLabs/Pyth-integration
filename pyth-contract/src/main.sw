@@ -51,8 +51,10 @@ use std::{
     },
     u256::U256,
 };
+use sway_libs::ownership::Ownership;;
 
 storage {
+    owner: Ownership = Ownership::initalized(Identity::Address(Address::from(ZERO_B256))),
     //////////////////
     /// PYTH STATE ///
     //////////////////
@@ -115,7 +117,7 @@ impl IPyth for Contract {
         ema_price_unsafe(price_feed_id)
     }
 
-    #[storage(read, write), payable]
+    #[storage(read), payable]
     fn parse_price_feed_updates(
         max_publish_time: u64,
         min_publish_time: u64,
@@ -283,7 +285,7 @@ impl IPyth for Contract {
 }
 
 impl PythSetters for Contract {
-    #[storage(read, write)]
+    #[storage(read, write)] 
     fn initialise(
         wormhole_contract_id: ContractId,
         data_source_emitter_chain_ids: Vec<u16>,
@@ -294,6 +296,8 @@ impl PythSetters for Contract {
         valid_time_period_seconds: u64,
         single_update_fee_in_wei: u64,
     ) {
+        storage.owner.only_owner();
+
         require(data_source_emitter_chain_ids.len == data_source_emitter_addresses.len, PythError::InvalidArgument);
 
         storage.wormhole_contract_id.write(wormhole_contract_id);
@@ -320,6 +324,8 @@ impl PythSetters for Contract {
 
         storage.valid_time_period_seconds.write(valid_time_period_seconds);
         storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
+
+        storage.owner.renounce_ownership();
     }
 }
 
