@@ -2,6 +2,7 @@ library;
 
 /// Error log for a Pyth oracle revert.
 pub enum PythError {
+    FeesCanOnlyBePayedInTheBaseAsset: (),
     InsufficientFee: (),
     InvalidArgument: (),
     InvalidUpdateData: (),

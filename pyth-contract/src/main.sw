@@ -39,7 +39,11 @@ use ::utils::{difference, find_index_of_price_feed_id, update_type};
 use std::{
     block::timestamp,
     bytes::Bytes,
-    constants::ZERO_B256,
+    call_frames::msg_asset_id,
+    constants::{
+        BASE_ASSET_ID,
+        ZERO_B256,
+    },
     context::msg_amount,
     storage::{
         storage_map::StorageMap,
@@ -118,6 +122,8 @@ impl IPyth for Contract {
         price_feed_ids: Vec<PriceFeedId>,
         update_data: Vec<Bytes>,
     ) -> Vec<PriceFeed> {
+        require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePayedInTheBaseAsset);
+
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
@@ -422,6 +428,8 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 
 #[storage(read, write), payable]
 fn update_price_feeds(update_data: Vec<Bytes>) {
+    require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePayedInTheBaseAsset);
+
     let mut total_number_of_updates = 0;
 
     let mut index = 0;
