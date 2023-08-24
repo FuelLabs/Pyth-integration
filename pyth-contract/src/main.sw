@@ -15,7 +15,8 @@ use ::data_structures::{
         PriceFeed,
         PriceFeedId,
     },
-    pyth_accumulator::UpdateType,
+    pyth_accumulator::AccumulatorUpdateType,
+    update_type::UpdateType,
     wormhole::{
         GuardianSet,
         Provider,
@@ -33,7 +34,7 @@ use ::pyth_accumulator::{
     parse_wormhole_merkle_header_updates,
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
-use ::utils::{difference, find_index_of_price_feed_id};
+use ::utils::{difference, find_index_of_price_feed_id, update_type};
 
 use std::{
     block::timestamp,
@@ -68,7 +69,6 @@ storage {
     wormhole_contract_id: ContractId = ContractId {
         value: ZERO_B256,
     },
-
     ///////////////////////
     ///  WORMHOLE STATE ///
     ///////////////////////
@@ -128,83 +128,85 @@ impl IPyth for Contract {
         while index < update_data_length {
             let data = update_data.get(index).unwrap();
 
-            if data.len > 4 && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC) {
-                let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
+            match update_type(data) {
+                UpdateType::Accumulator => {
+                    let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
 
-                let (offset, digest, number_of_updates, encoded) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(data, offset);
+                    let (offset, digest, number_of_updates, encoded) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(data, offset);
 
-                let mut index_2 = 0;
-                while index_2 < number_of_updates {
-                    let (_offset, price_feed, price_feed_id) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
+                    let mut index_2 = 0;
+                    while index_2 < number_of_updates {
+                        let (_offset, price_feed, price_feed_id) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
 
-                    // check whether caller requested for this data
-                    let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
+                        // check whether caller requested for this data
+                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
 
-                    // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
-                    // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
-                    if price_feed_id_index == price_feed_ids.len
-                        || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
-                    {
-                        continue;
+                        // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
+                        // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
+                        if price_feed_id_index == price_feed_ids.len
+                            || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
+                        {
+                            continue;
+                        }
+
+                        // Check the publish time of the price is within the given range
+                        // and only fill PriceFeed if it is.
+                        // If it is not, default id value of 0 will still be set and
+                        // this will allow other updates for this price id to be processed.
+                        if price_feed.price.publish_time >= min_publish_time
+                            && price_feed.price.publish_time <= max_publish_time
+                        {
+                            price_feeds.push(price_feed)
+                        }
+
+                        index_2 += 1;
                     }
+                    require(offset == encoded.len, PythError::InvalidUpdateData);
+                },
+                UpdateType::BatchAttestation => {
+                    let vm = parse_and_verify_batch_attestation_VM(data);
+                    let encoded_payload = vm.payload;
 
-                    // Check the publish time of the price is within the given range
-                    // and only fill PriceFeed if it is.
-                    // If it is not, default id value of 0 will still be set and
-                    // this will allow other updates for this price id to be processed.
-                    if price_feed.price.publish_time >= min_publish_time
-                        && price_feed.price.publish_time <= max_publish_time
-                    {
-                        price_feeds.push(price_feed)
+                    let (
+                        mut attestation_index,
+                        number_of_attestations,
+                        attestation_size,
+                    ) = parse_batch_attestation_header(encoded_payload);
+
+                    let mut index_2 = 0;
+                    while index_2 < number_of_attestations {
+                        //remove prior price attestations and this price attestation's product_id
+                        let (_front, back) = encoded_payload.split_at(attestation_index + 32);
+                        //extract this price attestation's price_feed_id
+                        let (price_feed_id, _back) = back.split_at(32);
+                        let price_feed_id: b256 = price_feed_id.into();
+
+                        // check whether caller requested for this data
+                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
+
+                        // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
+                        // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
+                        if price_feed_id_index == price_feed_ids.len
+                            || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
+                        {
+                            continue;
+                        }
+
+                        let price_feed = parse_single_attestation_from_batch(attestation_index, attestation_size, encoded_payload);
+
+                        // Check the publish time of the price is within the given range
+                        // and only fill PriceFeed if it is.
+                        // If it is not, default id value of 0 will still be set and
+                        // this will allow other updates for this price id to be processed.
+                        if price_feed.price.publish_time >= min_publish_time
+                            && price_feed.price.publish_time <= max_publish_time
+                        {
+                            price_feeds.push(price_feed)
+                        }
+
+                        attestation_index += attestation_size;
+                        index_2 += 1;
                     }
-
-                    index_2 += 1;
-                }
-                require(offset == encoded.len, PythError::InvalidUpdateData);
-            } else {
-                let vm = parse_and_verify_batch_attestation_VM(data);
-                let encoded_payload = vm.payload;
-
-                // Batch price logic
-                let (
-                    mut attestation_index,
-                    number_of_attestations,
-                    attestation_size,
-                ) = parse_batch_attestation_header(encoded_payload);
-
-                let mut index_2 = 0;
-                while index_2 < number_of_attestations {
-                    //remove prior price attestations and this price attestation's product_id
-                    let (_front, back) = encoded_payload.split_at(attestation_index + 32);
-                    //extract this price attestation's price_feed_id
-                    let (price_feed_id, _back) = back.split_at(32);
-                    let price_feed_id: b256 = price_feed_id.into();
-
-                    // check whether caller requested for this data
-                    let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
-
-                    // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
-                    // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
-                    if price_feed_id_index == price_feed_ids.len
-                        || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
-                    {
-                        continue;
-                    }
-
-                    let price_feed = parse_single_attestation_from_batch(attestation_index, attestation_size, encoded_payload);
-
-                    // Check the publish time of the price is within the given range
-                    // and only fill PriceFeed if it is.
-                    // If it is not, default id value of 0 will still be set and
-                    // this will allow other updates for this price id to be processed.
-                    if price_feed.price.publish_time >= min_publish_time
-                        && price_feed.price.publish_time <= max_publish_time
-                    {
-                        price_feeds.push(price_feed)
-                    }
-
-                    attestation_index += attestation_size;
-                    index_2 += 1;
                 }
             }
 
@@ -359,7 +361,6 @@ impl PythGetters for Contract {
 
 ///////////////////////////////
 /// IPYTH PRIVATE FUNCTIONS ///
-///////////////////////////////
 #[storage(read)]
 fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
     let price = ema_price_unsafe(price_feed_id);
@@ -402,14 +403,15 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
     while index < update_data_length {
         let data = update_data.get(index).unwrap();
 
-        if data.len > 4
-            && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC)
-        {
-            let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
+        match update_type(data) {
+            UpdateType::Accumulator => {
+                let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
 
-            total_number_of_updates += parse_wormhole_merkle_header_updates(offset, data);
-        } else {
-            total_number_of_updates += 1;
+                total_number_of_updates += parse_wormhole_merkle_header_updates(offset, data);
+            },
+            UpdateType::BatchAttestation => {
+                total_number_of_updates += 1;
+            },
         }
 
         index += 1;
@@ -427,14 +429,14 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
     while index < update_data_length {
         let data = update_data.get(index).unwrap();
 
-        // TODO; refactor into function - accumulator() -> bool
-        if data.len > 4
-            && data == accumulator_magic_bytes(ACCUMULATOR_MAGIC)
-        {
-            total_number_of_updates += update_price_feeds_from_accumulator_update(data);
-        } else {
-            update_price_batch_from_vm(data);
-            total_number_of_updates += 1;
+        match update_type(data) {
+            UpdateType::Accumulator => {
+                total_number_of_updates += update_price_feeds_from_accumulator_update(data);
+            },
+            UpdateType::BatchAttestation => {
+                update_price_batch_from_vm(data);
+                total_number_of_updates += 1;
+            },
         }
 
         index += 1;
@@ -451,7 +453,6 @@ fn valid_time_period() -> u64 {
 
 /////////////////////////////////
 /// GENERAL PRIVATE FUNCTIONS ///
-/////////////////////////////////
 #[storage(read)]
 fn total_fee(total_number_of_updates: u64) -> u64 {
     total_number_of_updates * storage.single_update_fee_in_wei.read()
@@ -459,29 +460,27 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 
 //////////////////////////////////////////
 /// PYTH ACCUMULATOR PRIVATE FUNCTIONS ///
-//////////////////////////////////////////
 #[storage(read)]
 fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
     accumulator_update: Bytes,
     encoded_offset: u64,
 ) -> (u64, Bytes, u64, Bytes) {
-    //TMP
+    //PLACEHOLDER 
     (1u64, Bytes::new(), 1u64, Bytes::new())
 }
 
 #[storage(read, write)]
 fn update_price_feeds_from_accumulator_update(accumulator_update: Bytes) -> u64 {
-    //TMP
+    //PLACEHOLDER 
     1u64
     //internally check is each update is necessary
 }
 
 //////////////////////////////////////////
 /// PYTH BATCH PRICE PRIVATE FUNCTIONS ///
-//////////////////////////////////////////
 #[storage(read)]
 fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
-    //TMP
+    //PLACEHOLDER 
     let mut signatures = Vec::new();
     signatures.push(Signature {
         r: ZERO_B256,
@@ -506,12 +505,11 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
 
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) {
-    //TMP
+    //PLACEHOLDER 
 }
 
 //////////////////////////////////////
 /// PYTHGETTERS PRIVATE FUNCTIONS ///
-//////////////////////////////////////
 #[storage(read)]
 fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
     match storage.latest_price_feed.get(price_feed_id).try_read() {
