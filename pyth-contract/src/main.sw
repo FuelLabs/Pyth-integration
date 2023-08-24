@@ -51,10 +51,11 @@ use std::{
     },
     u256::U256,
 };
-use sway_libs::ownership::Ownership;;
+use src_5::Ownership;
+use ownership::*;
 
 storage {
-    owner: Ownership = Ownership::initalized(Identity::Address(Address::from(ZERO_B256))),
+    owner: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
     //////////////////
     /// PYTH STATE ///
     //////////////////
@@ -285,8 +286,8 @@ impl IPyth for Contract {
 }
 
 impl PythSetters for Contract {
-    #[storage(read, write)] 
-    fn initialise(
+    #[storage(read, write)]
+    fn initialize(
         wormhole_contract_id: ContractId,
         data_source_emitter_chain_ids: Vec<u16>,
         data_source_emitter_addresses: Vec<b256>,
@@ -352,7 +353,7 @@ impl PythGetters for Contract {
 
     #[storage(read)]
     fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
-        latest_price_feed_publish_time(price_feed_id) != 0
+        latest_price_feed_publish_time(price_feed_id) != 0 //replaced
     }
 
     #[storage(read)]
@@ -365,9 +366,12 @@ impl PythGetters for Contract {
     //TODO uncomment when Hash is included in release
     // #[storage(read)]
     // fn valid_data_source(data_source: DataSource) -> bool {
-    //     storage.is_valid_data_source.get(
+    //     match storage.is_valid_data_source.get(
     //             data_source.hash()
-    //         ).try_read().unwrap()
+    //         ).try_read() {
+    //             Some(bool) => bool,
+    //             None => false,
+    //         }
     // }
 }
 

@@ -11,7 +11,7 @@ use ::data_structures::{
 
 use std::{bytes::Bytes, constants::ZERO_B256};
 
-pub const ACCUMULATOR_MAGIC: u32 = 0x504e4155; // Consider const as bytes
+pub const ACCUMULATOR_MAGIC: u32 = 0x504e4155; // Consider const as bytes and removing accumulator_magic_bytes
 pub fn accumulator_magic_bytes() -> Bytes {
     let accumulator_magic_array = ACCUMULATOR_MAGIC.to_be_bytes();
 

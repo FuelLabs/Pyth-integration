@@ -237,7 +237,7 @@ abi IPyth {
 
 abi PythSetters {
     #[storage(read, write)]
-    fn initialise(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: u64);
+    fn initialize(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: u64);
 }
 
 abi PythGetters {
