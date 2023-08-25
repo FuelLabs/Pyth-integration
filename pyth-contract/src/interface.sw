@@ -1,11 +1,21 @@
 library;
 
-use ::data_structures::{data_source::DataSource, price::{Price, PriceFeed, PriceFeedId}};
+use ::data_structures::{
+    data_source::DataSource,
+    price::{
+        Price,
+        PriceFeed,
+        PriceFeedId,
+    },
+    wormhole_light::{
+        GuardianSet,
+    },
+};
 use std::{bytes::Bytes, storage::storage_vec::*};
 
 //abis: IPyth, setters, getters, governance, upgradeability
 
-abi IPyth {
+abi PythCore {
     /// This function returns the exponentially-weighted moving average price and confidence interval.
     ///
     /// # Arguments
@@ -235,15 +245,12 @@ abi IPyth {
     fn valid_time_period() -> u64;
 }
 
-abi PythSetters {
+abi PythInit {
     #[storage(read, write)]
-    fn initialize(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: u64);
+    fn initialize(wormhole_contract_id: ContractId, data_source_emitter_chain_ids: Vec<u16>, data_source_emitter_addresses: Vec<b256>, governance_emitter_chainId: u16, governance_emitter_address: b256, governance_initial_sequence: u64, valid_time_period_seconds: u64, single_update_fee_in_wei: u64, wormhole_guardian_set_upgrade: Bytes);
 }
 
-abi PythGetters {
-    #[storage(read)]
-    fn chain_id() -> u16;
-
+abi PythInfo {
     #[storage(read)]
     fn current_valid_data_sources() -> StorageVec<DataSource>;
 
@@ -267,4 +274,18 @@ abi PythGetters {
     //TODO uncomment when Hash is included in release
     // #[storage(read)]
     // fn valid_data_source(data_source_chain_id: u16, data_source_emitter_address: b256) -> bool;
+}
+
+abi WormholeGuardians {
+    #[storage(read)]
+    fn governance_action_is_consumed(hash: b256) -> bool;
+
+    #[storage(read)]
+    fn guardian_set(index: u32) -> GuardianSet;
+
+    #[storage(read)]
+    fn current_guardian_set_index() -> u32;
+
+    #[storage(read, write)]
+    fn submit_new_guardian_set(vm: Bytes);
 }
