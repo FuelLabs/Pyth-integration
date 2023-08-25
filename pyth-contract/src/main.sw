@@ -7,6 +7,7 @@ mod interface;
 mod pyth_accumulator;
 mod pyth_batch;
 mod utils;
+mod wormhole_light;
 
 use ::data_structures::{
     data_source::DataSource,
@@ -17,7 +18,7 @@ use ::data_structures::{
     },
     pyth_accumulator::AccumulatorUpdateType,
     update_type::UpdateType,
-    wormhole::{
+    wormhole_light::{
         GuardianSet,
         Provider,
         Signature,
@@ -25,7 +26,7 @@ use ::data_structures::{
     },
 };
 use ::errors::{PythError};
-use ::interface::{IPyth, PythGetters, PythSetters};
+use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use ::pyth_accumulator::{
     ACCUMULATOR_MAGIC,
     accumulator_magic_bytes,
@@ -35,6 +36,7 @@ use ::pyth_accumulator::{
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
 use ::utils::{difference, find_index_of_price_feed_id, update_type};
+use ::wormhole_light::{parse_guardian_set_upgrade, parse_vm, UPGRADE_MODULE};
 
 use std::{
     block::timestamp,
@@ -56,10 +58,7 @@ use ownership::*;
 
 storage {
     owner: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
-    //////////////////
     /// PYTH STATE ///
-    //////////////////
-
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
     is_valid_data_source: StorageMap<b256, bool> = StorageMap {},
@@ -76,33 +75,16 @@ storage {
     wormhole_contract_id: ContractId = ContractId {
         value: ZERO_B256,
     },
-    ///////////////////////
     ///  WORMHOLE STATE ///
-    ///////////////////////
-
     // Mapping of consumed governance actions
-    consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
+    wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
     // Mapping of guardian_set_index => guardian set
-    guardian_sets: StorageMap<u32, GuardianSet> = StorageMap {},
-    // Period for which a guardian set stays active after it has been replaced
-    guardian_set_expiry: u32 = 0,
+    wormhole_guardian_sets: StorageMap<u32, GuardianSet> = StorageMap {},
     // Current active guardian set index
-    guardian_set_index: u32 = 0,
-    // Mapping of initialized implementations
-    initialized_implementations: StorageMap<b256, bool> = StorageMap {},
-    //
-    message_fee: u64 = 0,
-    //
-    provider: Provider = Provider {
-        chain_id: 0,
-        governance_chain_id: 0,
-        governance_contract: ZERO_B256,
-    },
-    // Sequence numbers per emitter
-    sequences: StorageMap<b256, u64> = StorageMap {},
+    wormhole_guardian_set_index: u32 = 0,
 }
 
-impl IPyth for Contract {
+impl PythCore for Contract {
     #[storage(read)]
     fn ema_price(price_feed_id: PriceFeedId) -> Price {
         ema_price_no_older_than(valid_time_period(), price_feed_id)
@@ -285,98 +267,7 @@ impl IPyth for Contract {
     }
 }
 
-impl PythSetters for Contract {
-    #[storage(read, write)]
-    fn initialize(
-        wormhole_contract_id: ContractId,
-        data_source_emitter_chain_ids: Vec<u16>,
-        data_source_emitter_addresses: Vec<b256>,
-        governance_emitter_chainId: u16,
-        governance_emitter_address: b256,
-        governance_initial_sequence: u64,
-        valid_time_period_seconds: u64,
-        single_update_fee_in_wei: u64,
-    ) {
-        storage.owner.only_owner();
-
-        require(data_source_emitter_chain_ids.len == data_source_emitter_addresses.len, PythError::InvalidArgument);
-
-        storage.wormhole_contract_id.write(wormhole_contract_id);
-
-        let mut index = 0;
-        let data_source_emitter_chain_ids_length = data_source_emitter_chain_ids.len;
-        while index < data_source_emitter_chain_ids_length {
-            let data_source = DataSource::new(data_source_emitter_chain_ids.get(index).unwrap(), data_source_emitter_addresses.get(index).unwrap());
-
-            // NOTE: Unsure if necessary, but present in the Solidity version. Is it possible to be anything other than false upon deployment
-            // require(valid_data_source(data_source.chain_id, data_source.emitter_address) == false, PythErrors::InvalidArgument);
-
-            //TODO uncomment when Hash is included in release
-            // storage.is_valid_data_source.insert(data_source.hash(), true);
-
-            storage.valid_data_sources.push(data_source);
-
-            index += 1;
-        }
-        // TODO: implement/ refactor with governance module
-        // let governance_data_source = DataSource::new(governance_emitter_chainId, governance_emitter_address);
-        // set_governance_data_source(governance_data_source);
-        // set_last_executed_governance_sequence(governance_initial_sequence);
-
-        storage.valid_time_period_seconds.write(valid_time_period_seconds);
-        storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
-
-        storage.owner.renounce_ownership();
-    }
-}
-
-impl PythGetters for Contract {
-    #[storage(read)]
-    fn chain_id() -> u16 {
-        storage.provider.read().chain_id
-    }
-
-    #[storage(read)]
-    fn current_valid_data_sources() -> StorageVec<DataSource> {
-        storage.valid_data_sources.read()
-    }
-
-    //TODO uncomment when Hash is included in release
-    // fn hash_data_source(data_source: DataSource) -> b256 {
-    //     data_source.hash()
-    // }
-
-    #[storage(read)]
-    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
-        latest_price_feed_publish_time(price_feed_id)
-    }
-
-    #[storage(read)]
-    fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
-        latest_price_feed_publish_time(price_feed_id) != 0 //replaced
-    }
-
-    #[storage(read)]
-    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
-        let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
-        require(price_feed.is_some(), PythError::PriceFeedNotFound);
-        price_feed.unwrap()
-    }
-
-    //TODO uncomment when Hash is included in release
-    // #[storage(read)]
-    // fn valid_data_source(data_source: DataSource) -> bool {
-    //     match storage.is_valid_data_source.get(
-    //             data_source.hash()
-    //         ).try_read() {
-    //             Some(bool) => bool,
-    //             None => false,
-    //         }
-    // }
-}
-
-///////////////////////////////
-/// IPYTH PRIVATE FUNCTIONS ///
+/// PythCore Private Functions ///
 #[storage(read)]
 fn ema_price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
     let price = ema_price_unsafe(price_feed_id);
@@ -438,7 +329,7 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 
 #[storage(read, write), payable]
 fn update_price_feeds(update_data: Vec<Bytes>) {
-    require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePayedInTheBaseAsset);
+    require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePaidInTheBaseAsset);
 
     let mut total_number_of_updates = 0;
 
@@ -469,15 +360,168 @@ fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
 }
 
-/////////////////////////////////
-/// GENERAL PRIVATE FUNCTIONS ///
+impl WormholeGuardians for Contract {
+    #[storage(read)]
+    fn governance_action_is_consumed(hash: b256) -> bool {
+        let consumed = storage.wormhole_consumed_governance_actions.get(hash).try_read();
+        require(consumed.is_some(), PythError::WormholeGovernanceActionNotFound);
+        consumed.unwrap()
+    }
+
+    #[storage(read)]
+    fn guardian_set(index: u32) -> GuardianSet {
+        let guardian_set = storage.wormhole_guardian_sets.get(index).try_read();
+        require(guardian_set.is_some(), PythError::GuardianSetNotFound);
+        guardian_set.unwrap()
+    }
+
+    #[storage(read)]
+    fn current_guardian_set_index() -> u32 {
+        current_guardian_set_index()
+    }
+
+    #[storage(read, write)]
+    fn submit_new_guardian_set(encoded_vm: Bytes) {
+        let vm = parse_vm(encoded_vm);
+
+        verify_governance_vm(vm);
+
+        let upgrade = parse_guardian_set_upgrade(vm.payload);
+        require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
+        require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
+        let current_guardian_set_index = current_guardian_set_index();
+        require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
+
+        storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
+
+        // Set expiry if Guardian set exists
+        let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
+        if current_guardian_set.is_some() {
+            let mut current_guardian_set = current_guardian_set.unwrap();
+            current_guardian_set.expiration_time = timestamp() + 86400u64;
+            storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
+        }
+
+        storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
+        storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
+    }
+}
+
+/// WormholeGuardians Private Functions ///
+#[storage(read)]
+fn current_guardian_set_index() -> u32 {
+    storage.wormhole_guardian_set_index.read()
+}
+
+impl PythInit for Contract {
+    #[storage(read, write)]
+    fn initialize(
+        wormhole_contract_id: ContractId,
+        data_source_emitter_chain_ids: Vec<u16>,
+        data_source_emitter_addresses: Vec<b256>,
+        governance_emitter_chainId: u16,
+        governance_emitter_address: b256,
+        governance_initial_sequence: u64,
+        valid_time_period_seconds: u64,
+        single_update_fee_in_wei: u64,
+        wormhole_guardian_set_upgrade: Bytes,
+    ) {
+        storage.owner.only_owner();
+
+        require(data_source_emitter_chain_ids.len == data_source_emitter_addresses.len, PythError::InvalidArgument);
+
+        storage.wormhole_contract_id.write(wormhole_contract_id);
+
+        let mut index = 0;
+        let data_source_emitter_chain_ids_length = data_source_emitter_chain_ids.len;
+        while index < data_source_emitter_chain_ids_length {
+            let data_source = DataSource::new(data_source_emitter_chain_ids.get(index).unwrap(), data_source_emitter_addresses.get(index).unwrap());
+
+            // NOTE: Unsure if necessary, but present in the Solidity version. Is it possible to be anything other than false upon deployment
+            // require(valid_data_source(data_source.chain_id, data_source.emitter_address) == false, PythErrors::InvalidArgument);
+
+            //TODO uncomment when Hash is included in release
+            // storage.is_valid_data_source.insert(data_source.hash(), true);
+
+            storage.valid_data_sources.push(data_source);
+
+            index += 1;
+        }
+        // TODO: implement/ refactor with governance module
+        // let governance_data_source = DataSource::new(governance_emitter_chainId, governance_emitter_address);
+        // set_governance_data_source(governance_data_source);
+        // set_last_executed_governance_sequence(governance_initial_sequence);
+
+        storage.valid_time_period_seconds.write(valid_time_period_seconds);
+        storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
+
+        submit_new_guardian_set(wormhole_guardian_set_upgrade);
+
+        storage.owner.renounce_ownership();
+    }
+}
+
+impl PythInfo for Contract {
+    #[storage(read)]
+    fn current_valid_data_sources() -> StorageVec<DataSource> {
+        storage.valid_data_sources.read()
+    }
+
+    //TODO uncomment when Hash is included in release
+    // fn hash_data_source(data_source: DataSource) -> b256 {
+    //     data_source.hash()
+    // }
+
+    #[storage(read)]
+    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+        latest_price_feed_publish_time(price_feed_id)
+    }
+
+    #[storage(read)]
+    fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
+        latest_price_feed_publish_time(price_feed_id) != 0 //replaced
+    }
+
+    #[storage(read)]
+    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
+        let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
+        require(price_feed.is_some(), PythError::PriceFeedNotFound);
+        price_feed.unwrap()
+    }
+
+    //TODO uncomment when Hash is included in release
+    // #[storage(read)]
+    // fn valid_data_source(data_source: DataSource) -> bool {
+    //     match storage.is_valid_data_source.get(
+    //             data_source.hash()
+    //         ).try_read() {
+    //             Some(bool) => bool,
+    //             None => false,
+    //         }
+    // }
+}
+
+/// PythInfo Private Functions ///
+#[storage(read)]
+fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+    match storage.latest_price_feed.get(price_feed_id).try_read() {
+        Some(price_feed) => price_feed.price.publish_time,
+        None => 0,
+    }
+}
+
+#[storage(read)]
+fn verify_governance_vm(vm: VM) {
+    //PLACEHOLDER
+}
+
+/// General Private Functions ///
 #[storage(read)]
 fn total_fee(total_number_of_updates: u64) -> u64 {
     total_number_of_updates * storage.single_update_fee_in_wei.read()
 }
 
-//////////////////////////////////////////
-/// PYTH ACCUMULATOR PRIVATE FUNCTIONS ///
+/// Pyth-accumulator Private Functions ///
 #[storage(read)]
 fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
     accumulator_update: Bytes,
@@ -494,8 +538,7 @@ fn update_price_feeds_from_accumulator_update(accumulator_update: Bytes) -> u64 
     //internally check is each update is necessary
 }
 
-//////////////////////////////////////////
-/// PYTH BATCH PRICE PRIVATE FUNCTIONS ///
+/// Pyth-batch-price Private Functions ///
 #[storage(read)]
 fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
     //PLACEHOLDER 
@@ -524,14 +567,4 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) {
     //PLACEHOLDER 
-}
-
-//////////////////////////////////////
-/// PYTHGETTERS PRIVATE FUNCTIONS ///
-#[storage(read)]
-fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
-    match storage.latest_price_feed.get(price_feed_id).try_read() {
-        Some(price_feed) => price_feed.price.publish_time,
-        None => 0,
-    }
 }
