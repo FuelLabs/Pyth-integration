@@ -4,13 +4,19 @@ use ::data_structures::wormhole_light::{GuardianSet, GuardianSetUpgrade, Provide
 
 use std::{bytes::Bytes, constants::{BASE_ASSET_ID, ZERO_B256}, storage::storage_vec::*};
 
+use std::hash::sha256;
+
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
 
 pub fn parse_guardian_set_upgrade(encoded_upgrade: Bytes) -> GuardianSetUpgrade {
     //PLACEHOLDER
     let guardian_set = GuardianSet {
         expiration_time: 0u64,
-        keys: StorageVec {},
+        keys: StorageKey {
+            slot: sha256(0),
+            offset: 0,
+            field_id: sha256(0),
+        },
     };
     GuardianSetUpgrade {
         action: 0u8,

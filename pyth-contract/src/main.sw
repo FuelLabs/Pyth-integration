@@ -382,28 +382,7 @@ impl WormholeGuardians for Contract {
 
     #[storage(read, write)]
     fn submit_new_guardian_set(encoded_vm: Bytes) {
-        let vm = parse_vm(encoded_vm);
-
-        verify_governance_vm(vm);
-
-        let upgrade = parse_guardian_set_upgrade(vm.payload);
-        require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
-        require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
-        let current_guardian_set_index = current_guardian_set_index();
-        require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
-
-        storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
-
-        // Set expiry if Guardian set exists
-        let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
-        if current_guardian_set.is_some() {
-            let mut current_guardian_set = current_guardian_set.unwrap();
-            current_guardian_set.expiration_time = timestamp() + 86400u64;
-            storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
-        }
-
-        storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
-        storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
+        submit_new_guardian_set(encoded_vm)
     }
 }
 
@@ -411,6 +390,32 @@ impl WormholeGuardians for Contract {
 #[storage(read)]
 fn current_guardian_set_index() -> u32 {
     storage.wormhole_guardian_set_index.read()
+}
+
+#[storage(read, write)]
+fn submit_new_guardian_set(encoded_vm: Bytes) {
+    let vm = parse_vm(encoded_vm);
+
+    verify_governance_vm(vm);
+
+    let upgrade = parse_guardian_set_upgrade(vm.payload);
+    require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
+    require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
+    let current_guardian_set_index = current_guardian_set_index();
+    require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
+
+    storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
+
+    // Set expiry if Guardian set exists
+    let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
+    if current_guardian_set.is_some() {
+        let mut current_guardian_set = current_guardian_set.unwrap();
+        current_guardian_set.expiration_time = timestamp() + 86400u64;
+        storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
+    }
+
+    storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
+    storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
 }
 
 impl PythInit for Contract {
@@ -479,7 +484,7 @@ impl PythInfo for Contract {
 
     #[storage(read)]
     fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
-        latest_price_feed_publish_time(price_feed_id) != 0 //replaced
+        latest_price_feed_publish_time(price_feed_id) != 0
     }
 
     #[storage(read)]

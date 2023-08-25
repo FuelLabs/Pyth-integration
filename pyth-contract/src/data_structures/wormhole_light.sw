@@ -4,7 +4,7 @@ use std::{bytes::Bytes, storage::storage_vec::*};
 
 pub struct GuardianSet {
     expiration_time: u64,
-    keys: StorageVec<b256>,
+    keys: StorageKey<StorageVec<b256>>,
 }
 
 pub struct GuardianSetUpgrade {
