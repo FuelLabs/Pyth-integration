@@ -384,9 +384,6 @@ impl PythInit for Contract {
         while index < data_source_emitter_chain_ids_length {
             let data_source = DataSource::new(data_source_emitter_chain_ids.get(index).unwrap(), data_source_emitter_addresses.get(index).unwrap());
 
-            // NOTE: Unsure if necessary, but present in the Solidity version. Is it possible to be anything other than false upon deployment
-            // require(valid_data_source(data_source.chain_id, data_source.emitter_address) == false, PythErrors::InvalidArgument);
-
             //TODO uncomment when Hash is included in release
             // storage.is_valid_data_source.insert(data_source.hash(), true);
 
@@ -394,10 +391,6 @@ impl PythInit for Contract {
 
             index += 1;
         }
-        // TODO: implement/ refactor with governance module
-        // let governance_data_source = DataSource::new(governance_emitter_chainId, governance_emitter_address);
-        // set_governance_data_source(governance_data_source);
-        // set_last_executed_governance_sequence(governance_initial_sequence);
 
         storage.valid_time_period_seconds.write(valid_time_period_seconds);
         storage.single_update_fee_in_wei.write(single_update_fee_in_wei);
