@@ -360,64 +360,6 @@ fn valid_time_period() -> u64 {
     storage.valid_time_period_seconds.read()
 }
 
-impl WormholeGuardians for Contract {
-    #[storage(read)]
-    fn governance_action_is_consumed(hash: b256) -> bool {
-        let consumed = storage.wormhole_consumed_governance_actions.get(hash).try_read();
-        require(consumed.is_some(), PythError::WormholeGovernanceActionNotFound);
-        consumed.unwrap()
-    }
-
-    #[storage(read)]
-    fn guardian_set(index: u32) -> GuardianSet {
-        let guardian_set = storage.wormhole_guardian_sets.get(index).try_read();
-        require(guardian_set.is_some(), PythError::GuardianSetNotFound);
-        guardian_set.unwrap()
-    }
-
-    #[storage(read)]
-    fn current_guardian_set_index() -> u32 {
-        current_guardian_set_index()
-    }
-
-    #[storage(read, write)]
-    fn submit_new_guardian_set(encoded_vm: Bytes) {
-        submit_new_guardian_set(encoded_vm)
-    }
-}
-
-/// WormholeGuardians Private Functions ///
-#[storage(read)]
-fn current_guardian_set_index() -> u32 {
-    storage.wormhole_guardian_set_index.read()
-}
-
-#[storage(read, write)]
-fn submit_new_guardian_set(encoded_vm: Bytes) {
-    let vm = parse_vm(encoded_vm);
-
-    verify_governance_vm(vm);
-
-    let upgrade = parse_guardian_set_upgrade(vm.payload);
-    require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
-    require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
-    let current_guardian_set_index = current_guardian_set_index();
-    require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
-
-    storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
-
-    // Set expiry if Guardian set exists
-    let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
-    if current_guardian_set.is_some() {
-        let mut current_guardian_set = current_guardian_set.unwrap();
-        current_guardian_set.expiration_time = timestamp() + 86400u64;
-        storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
-    }
-
-    storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
-    storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
-}
-
 impl PythInit for Contract {
     #[storage(read, write)]
     fn initialize(
@@ -518,6 +460,64 @@ fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
 #[storage(read)]
 fn verify_governance_vm(vm: VM) {
     //PLACEHOLDER
+}
+
+impl WormholeGuardians for Contract {
+    #[storage(read)]
+    fn governance_action_is_consumed(hash: b256) -> bool {
+        let consumed = storage.wormhole_consumed_governance_actions.get(hash).try_read();
+        require(consumed.is_some(), PythError::WormholeGovernanceActionNotFound);
+        consumed.unwrap()
+    }
+
+    #[storage(read)]
+    fn guardian_set(index: u32) -> GuardianSet {
+        let guardian_set = storage.wormhole_guardian_sets.get(index).try_read();
+        require(guardian_set.is_some(), PythError::GuardianSetNotFound);
+        guardian_set.unwrap()
+    }
+
+    #[storage(read)]
+    fn current_guardian_set_index() -> u32 {
+        current_guardian_set_index()
+    }
+
+    #[storage(read, write)]
+    fn submit_new_guardian_set(encoded_vm: Bytes) {
+        submit_new_guardian_set(encoded_vm)
+    }
+}
+
+/// WormholeGuardians Private Functions ///
+#[storage(read)]
+fn current_guardian_set_index() -> u32 {
+    storage.wormhole_guardian_set_index.read()
+}
+
+#[storage(read, write)]
+fn submit_new_guardian_set(encoded_vm: Bytes) {
+    let vm = parse_vm(encoded_vm);
+
+    verify_governance_vm(vm);
+
+    let upgrade = parse_guardian_set_upgrade(vm.payload);
+    require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
+    require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
+    let current_guardian_set_index = current_guardian_set_index();
+    require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
+
+    storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
+
+    // Set expiry if Guardian set exists
+    let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
+    if current_guardian_set.is_some() {
+        let mut current_guardian_set = current_guardian_set.unwrap();
+        current_guardian_set.expiration_time = timestamp() + 86400u64;
+        storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
+    }
+
+    storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
+    storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
 }
 
 /// General Private Functions ///
