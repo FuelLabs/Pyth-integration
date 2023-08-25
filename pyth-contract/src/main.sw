@@ -107,7 +107,7 @@ impl PythCore for Contract {
         price_feed_ids: Vec<PriceFeedId>,
         update_data: Vec<Bytes>,
     ) -> Vec<PriceFeed> {
-        require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePayedInTheBaseAsset);
+        require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePaidInTheBaseAsset);
 
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
