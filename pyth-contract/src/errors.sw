@@ -17,3 +17,11 @@ pub enum PythError {
     PriceFeedNotFoundWithinRange: (),
     WormholeGovernanceActionNotFound: (),
 }
+
+pub enum WormholeError{
+    VmVersionIncompatible: (),
+    GuardianSetNotFound: (),
+    InvalidGuardianSet: (),
+    GuardianSetHasExpired: (),
+    SignersLengthIrretrievable: (),
+}

@@ -519,19 +519,35 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 
 /// Pyth-accumulator Private Functions ///
 #[storage(read)]
+fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> VM {
+    let (vm, valid) = parse_and_verify_wormhole_VM(encoded_vm);
+}
+
+#[storage(read)]
 fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
     accumulator_update: Bytes,
     encoded_offset: u64,
 ) -> (u64, Bytes, u64, Bytes) {
-    //PLACEHOLDER 
-    (1u64, Bytes::new(), 1u64, Bytes::new())
+    let (_, back) = accumulator_update.split_at(encoded_offset);
+    let (encoded_slice, _) = back.split_at(accumulator_update.len - encoded_offset);
+
+    let mut offset = 0;
+
+    //two bytes starting at offset
+    let proof_size = u16::from_be_bytes([
+        encoded_slice.get(offset).unwrap(),
+        encoded_slice.get(offset + 1).unwrap(),
+    ]).as_u64();
+    offset += 2;
+
+    let vm = parse_and_verify_pyth_VM();
 }
 
 #[storage(read, write)]
-fn update_price_feeds_from_accumulator_update(accumulator_update: Bytes) -> u64 {
-    //PLACEHOLDER 
-    1u64
-    //internally check is each update is necessary
+fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpdate) -> u64 {
+    let encoded_offset = accumulator_update.verify();
+
+    let (offset, digest, number_of_updates, encoded_data) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(accumulator_update.data, encoded_offset);
 }
 
 /// Pyth-batch-price Private Functions ///
@@ -563,4 +579,47 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) {
     //PLACEHOLDER 
+}
+
+/// Wormhole light Private Functions ///
+#[storage(read)]
+fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
+    let mut index = 0;
+
+    let mut vm = VM::default();
+
+    let version = encoded_vm.get(index);
+    require(version.is_some() && version.unwrap() == 1, WormholeError::VmVersionIncompatible);
+    index += 1;
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(4);
+    let guardian_set_index = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+    index += 4;
+
+    let guardian_set = storage.wormhole_guardian_sets.get(guardian_set_index).try_read();
+    require(guardian_set.is_some(), WormholeError::GuardianSetNotFound);
+    let guardian_set = guardian_set.unwrap();
+    require(guardian_set.keys.len() > 0, WormholeError::InvalidGuardianSet);
+    require(guardian_set_index == current_guardian_set_index() && guardian_set.expiration_time > timestamp(), WormholeError::InvalidGuardianSet);
+
+    let signers_length = encoded_vm.get(index);
+    require(signers_length.is_some(), WormholeError::SignersLengthIrretrievable);
+    let signers_length = signers_length.unwrap();
+    index += 1;
+
+    // 66 is the length of each guardian signature
+    // 1 (guardianIndex) + 32 (r) + 32 (s) + 1 (v)
+    let hash_index = index + (signers_length * 66);
+    require(hash_index < encoded_vm.len, WormholeError::InvalidSignatureLength);
+
+    let (_, slice) = encoded_vm.split_at(hash_index);
+    let hash = slice.keccak256().keccak256();
+
+    
 }
