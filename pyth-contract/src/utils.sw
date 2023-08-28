@@ -1,9 +1,14 @@
 library;
 
-use ::data_structures::{price::{PriceFeedId}, update_type::UpdateType};
-use ::pyth_accumulator::accumulator_magic_bytes;
+use ::data_structures::{price::{PriceFeedId}};
+use ::pyth_accumulator::{accumulator_magic_bytes, AccumulatorUpdate};
 
 use std::bytes::Bytes;
+
+pub enum UpdateType {
+    Accumulator: AccumulatorUpdate,
+    BatchAttestation: (),
+}
 
 pub fn difference(x: u64, y: u64) -> u64 {
     if x > y { x - y } else { y - x }
@@ -27,8 +32,9 @@ pub fn find_index_of_price_feed_id(
 }
 
 pub fn update_type(data: Bytes) -> UpdateType {
-    if data.len > 4 && data == accumulator_magic_bytes() {
-        UpdateType::Accumulator
+    let (magic, _) = data.split_at(4);
+    if data.len > 4 && magic == accumulator_magic_bytes() {
+        UpdateType::Accumulator(AccumulatorUpdate::new(data))
     } else {
         UpdateType::BatchAttestation
     }
