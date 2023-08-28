@@ -310,9 +310,9 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 
         match update_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                let offset = accumulator_update.verify();
+                let proof_size_offset = accumulator_update.verify();
 
-                total_number_of_updates += accumulator_update.total_updates(offset);
+                total_number_of_updates += accumulator_update.total_updates(proof_size_offset);
             },
             UpdateType::BatchAttestation => {
                 total_number_of_updates += 1;
