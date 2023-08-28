@@ -1,1 +1,1 @@
-# Pyth-integration
+# pyth-integration
