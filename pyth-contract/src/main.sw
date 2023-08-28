@@ -16,8 +16,6 @@ use ::data_structures::{
         PriceFeed,
         PriceFeedId,
     },
-    pyth_accumulator::AccumulatorUpdateType,
-    update_type::UpdateType,
     wormhole_light::{
         GuardianSet,
         Provider,
@@ -28,14 +26,13 @@ use ::data_structures::{
 use ::errors::{PythError};
 use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use ::pyth_accumulator::{
-    ACCUMULATOR_MAGIC,
     accumulator_magic_bytes,
+    AccumulatorUpdate,
     extract_price_feed_from_merkle_proof,
-    extract_update_type_from_accumulator_header,
     parse_wormhole_merkle_header_updates,
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
-use ::utils::{difference, find_index_of_price_feed_id, update_type};
+use ::utils::{difference, find_index_of_price_feed_id, update_type, UpdateType};
 use ::wormhole_light::{parse_guardian_set_upgrade, parse_vm, UPGRADE_MODULE};
 
 use std::{
@@ -120,8 +117,8 @@ impl PythCore for Contract {
             let data = update_data.get(index).unwrap();
 
             match update_type(data) {
-                UpdateType::Accumulator => {
-                    let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
+                UpdateType::Accumulator(accumulator_update) => {
+                    let offset = accumulator_update.verify();
 
                     let (offset, digest, number_of_updates, encoded) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(data, offset);
 
@@ -307,14 +304,15 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
     let mut total_number_of_updates = 0;
     let mut index = 0;
     let update_data_length = update_data.len;
+
     while index < update_data_length {
         let data = update_data.get(index).unwrap();
 
         match update_type(data) {
-            UpdateType::Accumulator => {
-                let (offset, _update_type) = extract_update_type_from_accumulator_header(data);
+            UpdateType::Accumulator(accumulator_update) => {
+                let offset = accumulator_update.verify();
 
-                total_number_of_updates += parse_wormhole_merkle_header_updates(offset, data);
+                total_number_of_updates += accumulator_update.total_updates(offset);
             },
             UpdateType::BatchAttestation => {
                 total_number_of_updates += 1;
