@@ -24,4 +24,7 @@ pub enum WormholeError{
     InvalidGuardianSet: (),
     GuardianSetHasExpired: (),
     SignersLengthIrretrievable: (),
+    GuardianIndexIrretrievable: (),
+    SignatureVIrretrievable: (),
+
 }

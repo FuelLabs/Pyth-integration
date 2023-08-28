@@ -57,3 +57,21 @@ pub fn parse_vm(encoded_vm: Bytes) -> VM {
         hash: ZERO_B256,
     }
 }
+
+/*
+pub struct Signature {
+    guardian_index: u8,
+    r: b256,
+    s: b256,
+    v: u8,
+}
+*/
+// Notes: impl here as difficulties were encountered using errors from within data_structures
+impl Signature {
+    pub fn verify(self, guardian_set_key: b256, hash: b256, i: u64, last_index: u64) {
+        
+    }
+}
+pub fn verify_guardian_signature() {
+
+}

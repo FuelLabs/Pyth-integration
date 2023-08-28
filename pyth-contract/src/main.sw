@@ -621,5 +621,30 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
     let (_, slice) = encoded_vm.split_at(hash_index);
     let hash = slice.keccak256().keccak256();
 
-    
+    let mut last_index = 0;
+    let mut i = 0;
+    while i < signers_length {
+        let guardian_index = encoded_vm.get(index);
+        require(guardian_index.is_some(), WormholeError::GuardianIndexIrretrievable);
+        index += 1;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, remainder) = slice.split_at(32);
+        let r: b256 = slice.into();
+        index += 32;
+
+        let (slice, remainder) = remainder.split_at(32); 
+        let s: b256 = slice.into();
+        index += 32;
+
+        let v = remainder.get(0);
+        require(v.is_some(), WormholeError::SignatureVIrretrievable);
+        let v = v.unwrap() + 27;
+        index += 1;
+
+        verify_guardian_signature();
+
+        //
+        i += 1;
+    }
 }
