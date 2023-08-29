@@ -64,22 +64,16 @@ pub fn accumulator_magic_bytes() -> Bytes {
 
 pub fn extract_price_feed_from_merkle_proof(
     digest: Bytes,
-    encoded: Bytes,
-    offset: u64,
-) -> (u64, PriceFeed, PriceFeedId) {
-    //PLACEHOLDER 
-    let price = Price {
-        confidence: 0,
-        exponent: 0,
-        price: 0,
-        publish_time: 0,
-    };
-    let price_feed = PriceFeed {
-        ema_price: price,
-        id: ZERO_B256,
-        price: price,
-    };
-    (1u64, price_feed, ZERO_B256)
+    encoded_data: Bytes,
+    ref mut offset: u64,
+) -> (u64, PriceFeed) {
+    let message_size = u16::from_be_bytes([
+            encoded_data.get(offset).unwrap(),
+            encoded_data.get(offset + 1).unwrap(),
+        ]);
+    offset += 2;
+
+    let 
 }
 
 pub fn parse_wormhole_merkle_header_updates(offset: u64, wormhole_merkle_update: Bytes) -> u64 {

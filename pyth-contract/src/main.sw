@@ -592,6 +592,18 @@ fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpd
     let encoded_offset = accumulator_update.verify();
 
     let (offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
+
+    let mut i = 0;
+    while i < number_of_updates {
+        let (offset, price_feed) = extract_price_feed_from_merkle_proof(
+            digest,
+            encoded_data,
+            offset
+        )
+
+        //
+        i += 1;
+    }
 }
 
 /// Pyth-batch-price Private Functions ///
