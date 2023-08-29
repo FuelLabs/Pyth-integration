@@ -538,19 +538,53 @@ fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumu
     accumulator_update: Bytes,
     encoded_offset: u64,
 ) -> (u64, Bytes, u64, Bytes) {
-    let (_, back) = accumulator_update.split_at(encoded_offset);
-    let (encoded_slice, _) = back.split_at(accumulator_update.len - encoded_offset);
+    let (_, slice) = accumulator_update.split_at(encoded_offset);
+    let (encoded_slice, _) = slice.split_at(accumulator_update.len - encoded_offset);
 
     let mut offset = 0;
 
     //two bytes starting at offset
-    let proof_size = u16::from_be_bytes([
+    let womrhole_proof_size = u16::from_be_bytes([
         encoded_slice.get(offset).unwrap(),
         encoded_slice.get(offset + 1).unwrap(),
     ]).as_u64();
     offset += 2;
 
-    let vm = parse_and_verify_pyth_VM();
+    let (_, slice) = encoded_slice.split_at(offset);
+    let (encoded_vm, _) = slice.split_at(womrhole_proof_size);
+    let vm = parse_and_verify_pyth_VM(encoded_vm);
+    offset += womrhole_proof_size;
+
+    let encoded_payload = vm.payload;
+
+    /*
+    Payload offset:
+    skip magic (4 bytes) as already checked when this is called
+    skip update_type as (1 byte) it can only be WormholeMerkle
+    skip slot (8 bytes) as unused
+    skip ring_size (4 bytes) as unused
+    */
+    let mut payload_offset = 17;
+
+    let (_, slice) = encoded_payload.split_at(payload_offset);
+    let (digest, _) = slice.split_at(20);
+    payload_offset += 20;
+
+    require(
+        payload_offset <= encoded_payload.len,
+        PythError::InvalidUpdateData
+    );
+
+    let number_of_updates = encoded_slice.get(offset);
+    require(number_of_updates.is_some(), PythError::NumberOfUpdatesIrretrievable);
+    offset += 1;
+
+    (
+        offset,
+        digest,
+        number_of_updates,
+        encoded_slice
+    )
 }
 
 #[storage(read, write)]

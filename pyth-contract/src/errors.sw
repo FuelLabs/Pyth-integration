@@ -17,6 +17,7 @@ pub enum PythError {
     PriceFeedNotFound: (),
     PriceFeedNotFoundWithinRange: (),
     WormholeGovernanceActionNotFound: (),
+    NumberOfUpdatesIrretrievable: (),
 }
 
 pub enum WormholeError{
