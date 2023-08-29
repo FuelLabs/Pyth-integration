@@ -26,5 +26,9 @@ pub enum WormholeError{
     SignersLengthIrretrievable: (),
     GuardianIndexIrretrievable: (),
     SignatureVIrretrievable: (),
-
+    SignatureIndicesNotAscending: (),
+    VMSignatureInvalid: (),
+    GuardianSetKeyIrretrievable: (),
+    NoQuorum: (),
+    VMConsistencyLevelIrretrievable: (),
 }

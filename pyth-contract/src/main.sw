@@ -520,7 +520,9 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 /// Pyth-accumulator Private Functions ///
 #[storage(read)]
 fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> VM {
-    let (vm, valid) = parse_and_verify_wormhole_VM(encoded_vm);
+    let vm = parse_and_verify_wormhole_VM(encoded_vm);
+
+    
 }
 
 #[storage(read)]
@@ -583,7 +585,7 @@ fn update_price_batch_from_vm(encoded_vm: Bytes) {
 
 /// Wormhole light Private Functions ///
 #[storage(read)]
-fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
+fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
     let mut index = 0;
 
     let mut vm = VM::default();
@@ -593,8 +595,8 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
     index += 1;
 
     let (_, slice) = encoded_vm.split_at(index);
-    let (slice, _) = slice.split_at(4);
-    let guardian_set_index = u32::from_be_bytes([
+    let (slice, _) = slice.split_at(4); //replace with slice()
+    let guardian_set_index = u32::from_be_bytes([ //replace with func
             slice.get(0).unwrap(),
             slice.get(1).unwrap(),
             slice.get(2).unwrap(),
@@ -626,6 +628,7 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
     while i < signers_length {
         let guardian_index = encoded_vm.get(index);
         require(guardian_index.is_some(), WormholeError::GuardianIndexIrretrievable);
+        let guardian_index = guardian_index.unwrap();
         index += 1;
 
         let (_, slice) = encoded_vm.split_at(index);
@@ -642,9 +645,93 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> (VM, valid) {
         let v = v.unwrap() + 27;
         index += 1;
 
-        verify_guardian_signature();
+        let guardian_set_key = guardian_set.keys.get(guardian_index);
+        require(guardian_set_key.is_some(), WormholeError::GuardianSetKeyIrretrievable);
+  
+        GuardianSignature::new(guardian_index,r,s,v)
+        .verify(guardian_set_key.unwrap(), hash, i, last_index);
 
-        //
+        last_index = guardian_index;
         i += 1;
     }
+
+    /*
+    We're using a fixed point number transformation with 1 decimal to deal with rounding.
+    This quorum check is critical to assessing whether we have enough Guardian signatures to validate a VM.
+    If guardian set key length is 0 and signatures length is 0, this could compromise the integrity of both VM and signature verification.
+    */
+    require(
+        ((((guardian_set.keys.len() * 10) / 3) * 2) / 10 + 1) <= signers_length
+        , WormholeError::NoQuorum
+    );
+
+    //ignore VM.signatures
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(4);
+    let timestamp = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+    index += 4;
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(4);
+    let nonce = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+    index += 4;
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(2);
+    let emitter_chain_id = u16::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+        ]);
+    index += 2;
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(32);
+    let emitter_address: b256 = slice.into();
+    index += 32;
+
+    let (_, slice) = encoded_vm.split_at(index);
+    let (slice, _) = slice.split_at(8);
+    let sequence = u64::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+            slice.get(4).unwrap(),
+            slice.get(5).unwrap(),
+            slice.get(6).unwrap(),
+            slice.get(7).unwrap(),
+        ]);
+    index += 8;
+
+    let consistency_level = encoded_vm.get(index);
+    require(consistency_level.is_some(), WormholeError::VMConsistencyLevelIrretrievable);
+    index += 1;
+
+    require(index <= encoded_vm.len, WormholeError::InvalidPayloadLength);
+
+    let payload = let (_, slice) = encoded_vm.split_at(index);
+
+    VM::new(
+        version,
+        guardian_set_index,
+        hash,
+        timestamp,
+        nonce,
+        emitter_chain_id,
+        emitter_address,
+        sequence,
+        consistency_level,
+        payload,
+    )
 }
