@@ -534,7 +534,7 @@ fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> VM {
 }
 
 #[storage(read)]
-fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(
+fn parse_accumulator_update(
     accumulator_update: Bytes,
     encoded_offset: u64,
 ) -> (u64, Bytes, u64, Bytes) {
@@ -591,7 +591,7 @@ fn extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumu
 fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpdate) -> u64 {
     let encoded_offset = accumulator_update.verify();
 
-    let (offset, digest, number_of_updates, encoded_data) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(accumulator_update.data, encoded_offset);
+    let (offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
 }
 
 /// Pyth-batch-price Private Functions ///
