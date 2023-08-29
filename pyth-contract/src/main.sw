@@ -522,7 +522,15 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> VM {
     let vm = parse_and_verify_wormhole_VM(encoded_vm);
 
-    
+    require(
+        valid_data_source(DataSource::new(
+            vm.emitter_chain_id 
+            vm.emitter_address
+        ))
+    ,PythError::InvalidUpdateDataSource
+    );
+
+    vm
 }
 
 #[storage(read)]

@@ -7,6 +7,7 @@ pub enum PythError {
     InsufficientFee: (),
     InvalidArgument: (),
     InvalidUpdateData: (),
+    InvalidUpdateDataSource: (),
     InvalidUpgradeModule: (),
     NewGuardianSetIsEmpty: (),
     NewGuardianSetIndexIsInvalid: (),
