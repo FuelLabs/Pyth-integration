@@ -12,7 +12,13 @@ pub struct Price {
     // Confidence interval around the price
     confidence: u64,
     // Price exponent
-    exponent: u32,
+    // exponent: u32,
+    /*
+    take 4 bytes from message i32 as array of u8s
+    convert bytes array into u32
+    bitshift to get absolute, unless 0
+    for use, expo should be considered negative
+    */
     // Price
     price: u64,
     // The timestamp describing when the price was published

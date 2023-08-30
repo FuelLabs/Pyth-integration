@@ -18,6 +18,8 @@ pub enum PythError {
     PriceFeedNotFoundWithinRange: (),
     WormholeGovernanceActionNotFound: (),
     NumberOfUpdatesIrretrievable: (),
+    InvalidProof: (),
+    IncorrectMessageType: (),
 }
 
 pub enum WormholeError{

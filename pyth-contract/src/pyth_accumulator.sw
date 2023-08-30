@@ -64,19 +64,70 @@ pub fn accumulator_magic_bytes() -> Bytes {
 
 pub fn extract_price_feed_from_merkle_proof(
     digest: Bytes,
-    encoded_data: Bytes,
+    encoded_proof: Bytes,
     ref mut offset: u64,
 ) -> (u64, PriceFeed) {
     let message_size = u16::from_be_bytes([
-            encoded_data.get(offset).unwrap(),
-            encoded_data.get(offset + 1).unwrap(),
+            encoded_proof.get(offset).unwrap(),
+            encoded_proof.get(offset + 1).unwrap(),
         ]);
     offset += 2;
 
-    let 
+    let (_, slice) = encoded_proof.split_at(offset);
+    let (encoded_message, _) = slice.split_at(message_size);
+    offset += message_size;
+
+    let end_offset = validate_proof(
+        encoded_proof,
+        encoded_message,
+        offset,
+        digest,
+        );
+    
+    // Message type of 0 is a Price Feed
+    require( encoded_message.get(0).unwrap() == 0, PythError::IncorrectMessageType);
+    let price_feed = parse_price_feed_message(encoded_message, 1);
 }
 
 pub fn parse_wormhole_merkle_header_updates(offset: u64, wormhole_merkle_update: Bytes) -> u64 {
     //PLACEHOLDER 
     1u64
+}
+
+fn parse_price_feed_message(encoded_price_feed: Bytes, ref mut offset: u64) -> PriceFeed {
+    let (_, slice) = encoded_price_feed.split_at(offset);
+    let (price_feed_id, _) = slice.split_at(32);
+    let price_feed_id: PriceFeedId = price_feed_id.into();
+    offset += 32;
+
+    let price = u64::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+            encoded_price_feed.get(offset + 4).unwrap(),
+            encoded_price_feed.get(offset + 5).unwrap(),
+            encoded_price_feed.get(offset + 6).unwrap(),
+            encoded_price_feed.get(offset + 7).unwrap(),
+        ]);
+    offset += 8;
+
+    let confidence = u64::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+            encoded_price_feed.get(offset + 4).unwrap(),
+            encoded_price_feed.get(offset + 5).unwrap(),
+            encoded_price_feed.get(offset + 6).unwrap(),
+            encoded_price_feed.get(offset + 7).unwrap(),
+        ]);
+    offset += 8;
+
+    let exponent = u32::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+        ]);
 }
