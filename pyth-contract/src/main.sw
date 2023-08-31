@@ -337,8 +337,10 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
         let data = update_data.get(index).unwrap();
 
         match update_type(data) {
-            UpdateType::Accumulator => {
-                total_number_of_updates += update_price_feeds_from_accumulator_update(data);
+            UpdateType::Accumulator(accumulator_update) => {
+                let (number_of_updates, updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update.data);
+                total_number_of_updates += number_of_updates;
+                //log update event {updated_price_feeds}
             },
             UpdateType::BatchAttestation => {
                 update_price_batch_from_vm(data);
