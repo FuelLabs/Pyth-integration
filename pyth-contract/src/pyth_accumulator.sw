@@ -87,6 +87,8 @@ pub fn extract_price_feed_from_merkle_proof(
     // Message type of 0 is a Price Feed
     require( encoded_message.get(0).unwrap() == 0, PythError::IncorrectMessageType);
     let price_feed = parse_price_feed_message(encoded_message, 1);
+
+    (end_offset, price_feed)
 }
 
 pub fn parse_wormhole_merkle_header_updates(offset: u64, wormhole_merkle_update: Bytes) -> u64 {

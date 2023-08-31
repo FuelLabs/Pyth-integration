@@ -588,22 +588,36 @@ fn parse_accumulator_update(
 }
 
 #[storage(read, write)]
-fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpdate) -> u64 {
+fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpdate) -> (u64, Vec<PriceFeed>) {
     let encoded_offset = accumulator_update.verify();
 
     let (offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
 
+    let mut updated_price_feeds = Vec::new();
     let mut i = 0;
     while i < number_of_updates {
         let (offset, price_feed) = extract_price_feed_from_merkle_proof(
             digest,
             encoded_data,
             offset
-        )
+        );
 
-        //
+        let latest_publish_time = match storage.latest_price_feed.get(price_feed.id).try_read() {
+            Some(price_feed) => price_feed.price.publish_time,
+            None => 0,
+        }
+
+        if price_feed.price.publish_time > latest_publish_time {
+            storage.latest_price_feed.insert(price_feed.id, price_feed);
+            updated_price_feeds.push(price_feed);
+        }
+
         i += 1;
     }
+
+    require(offset == encoded_data.len,);
+
+    (number_of_updates, updated_price_feeds)
 }
 
 /// Pyth-batch-price Private Functions ///
