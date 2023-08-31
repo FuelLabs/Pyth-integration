@@ -124,10 +124,69 @@ fn parse_price_feed_message(encoded_price_feed: Bytes, ref mut offset: u64) -> P
         ]);
     offset += 8;
 
+    // exponent is an i32, expected to be in the range -255 to 0
     let exponent = u32::from_be_bytes([
             encoded_price_feed.get(offset).unwrap(),
             encoded_price_feed.get(offset + 1).unwrap(),
             encoded_price_feed.get(offset + 2).unwrap(),
             encoded_price_feed.get(offset + 3).unwrap(),
         ]);
+    let exponent = absolute_of_exponent(exponent);
+    require(exponent < 256u32, PythError::InvalidExponent);
+    offset += 4;
+
+    let publish_time = u64::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+            encoded_price_feed.get(offset + 4).unwrap(),
+            encoded_price_feed.get(offset + 5).unwrap(),
+            encoded_price_feed.get(offset + 6).unwrap(),
+            encoded_price_feed.get(offset + 7).unwrap(),
+        ]);
+    // skip unused previous_publish_times (8 bytes)
+    offset += 16;
+
+    let ema_price = u64::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+            encoded_price_feed.get(offset + 4).unwrap(),
+            encoded_price_feed.get(offset + 5).unwrap(),
+            encoded_price_feed.get(offset + 6).unwrap(),
+            encoded_price_feed.get(offset + 7).unwrap(),
+        ]);
+    offset += 8;
+
+    let ema_confidence = u64::from_be_bytes([
+            encoded_price_feed.get(offset).unwrap(),
+            encoded_price_feed.get(offset + 1).unwrap(),
+            encoded_price_feed.get(offset + 2).unwrap(),
+            encoded_price_feed.get(offset + 3).unwrap(),
+            encoded_price_feed.get(offset + 4).unwrap(),
+            encoded_price_feed.get(offset + 5).unwrap(),
+            encoded_price_feed.get(offset + 6).unwrap(),
+            encoded_price_feed.get(offset + 7).unwrap(),
+        ]);
+    offset += 8;
+
+    require(offset <= encoded_price_feed.len, PythError::InvalidUpdateData);
+
+    PriceFeed::new(
+        ema_price: Price::new(
+            ema_confidence,
+            exponent,
+            ema_price,
+            publish_time,
+        ), 
+        price_feed_id, 
+        price: Price::new(
+            confidence,
+            exponent,
+            price,
+            publish_time,
+        )
+    )
 }

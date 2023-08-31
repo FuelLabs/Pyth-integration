@@ -39,3 +39,11 @@ pub fn update_type(data: Bytes) -> UpdateType {
         UpdateType::BatchAttestation
     }
 }
+
+pub fn absolute_of_exponent(exponent: u32) -> u32 {
+    if exponent == 0u32 {
+        exponent
+    } else {
+        u32::max() - exponent + 1
+    }
+}
