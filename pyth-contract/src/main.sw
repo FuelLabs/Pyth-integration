@@ -8,6 +8,8 @@ mod pyth_accumulator;
 mod pyth_batch;
 mod utils;
 mod wormhole_light;
+mod update_type;
+mod pyth_merkle_proof;
 
 use ::data_structures::{
     data_source::DataSource,
@@ -18,22 +20,22 @@ use ::data_structures::{
     },
     wormhole_light::{
         GuardianSet,
+        GuardianSignature,
         Provider,
-        Signature,
         VM,
     },
 };
-use ::errors::{PythError};
+use ::errors::{PythError, WormholeError};
 use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use ::pyth_accumulator::{
     accumulator_magic_bytes,
     AccumulatorUpdate,
     extract_price_feed_from_merkle_proof,
-    parse_wormhole_merkle_header_updates,
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
-use ::utils::{difference, find_index_of_price_feed_id, update_type, UpdateType};
-use ::wormhole_light::{parse_guardian_set_upgrade, parse_vm, UPGRADE_MODULE};
+use ::utils::{difference, find_index_of_price_feed_id};
+use ::update_type::{update_type, UpdateType};
+use ::wormhole_light::*;
 
 use std::{
     block::timestamp,
@@ -120,14 +122,14 @@ impl PythCore for Contract {
                 UpdateType::Accumulator(accumulator_update) => {
                     let offset = accumulator_update.verify();
 
-                    let (offset, digest, number_of_updates, encoded) = extract_wormhole_merkle_header_digest_and_num_updates_and_encoded_from_accumulator_update(data, offset);
+                    let (mut offset, digest, number_of_updates, encoded) = parse_accumulator_update(accumulator_update.data, offset);
 
                     let mut index_2 = 0;
                     while index_2 < number_of_updates {
-                        let (_offset, price_feed, price_feed_id) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
+                        let (mut offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
 
                         // check whether caller requested for this data
-                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
+                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed.id);
 
                         // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
                         // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
@@ -338,7 +340,7 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
         match update_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                let (number_of_updates, updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update.data);
+                let (number_of_updates, updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update);
                 total_number_of_updates += number_of_updates;
                 //log update event {updated_price_feeds}
             },
@@ -524,13 +526,8 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> VM {
     let vm = parse_and_verify_wormhole_VM(encoded_vm);
 
-    require(
-        valid_data_source(DataSource::new(
-            vm.emitter_chain_id 
-            vm.emitter_address
-        ))
-    ,PythError::InvalidUpdateDataSource
-    );
+    //TODO uncomment when Hash is included in release
+    // require(valid_data_source(DataSource::new(vm.emitter_chain_id, vm.emitter_address)), PythError::InvalidUpdateDataSource);
 
     vm
 }
@@ -572,42 +569,36 @@ fn parse_accumulator_update(
     let (digest, _) = slice.split_at(20);
     payload_offset += 20;
 
-    require(
-        payload_offset <= encoded_payload.len,
-        PythError::InvalidUpdateData
-    );
+    require(payload_offset <= encoded_payload.len, PythError::InvalidUpdateData);
 
     let number_of_updates = encoded_slice.get(offset);
     require(number_of_updates.is_some(), PythError::NumberOfUpdatesIrretrievable);
     offset += 1;
-
     (
         offset,
         digest,
-        number_of_updates,
-        encoded_slice
+        number_of_updates.unwrap().as_u64(),
+        encoded_slice,
     )
 }
 
 #[storage(read, write)]
-fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpdate) -> (u64, Vec<PriceFeed>) {
+fn update_price_feeds_from_accumulator_update(
+    accumulator_update: AccumulatorUpdate,
+) -> (u64, Vec<PriceFeed>) {
     let encoded_offset = accumulator_update.verify();
 
-    let (offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
+    let (mut offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
 
     let mut updated_price_feeds = Vec::new();
     let mut i = 0;
     while i < number_of_updates {
-        let (offset, price_feed) = extract_price_feed_from_merkle_proof(
-            digest,
-            encoded_data,
-            offset
-        );
+        let (offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded_data, offset);
 
         let latest_publish_time = match storage.latest_price_feed.get(price_feed.id).try_read() {
             Some(price_feed) => price_feed.price.publish_time,
             None => 0,
-        }
+        };
 
         if price_feed.price.publish_time > latest_publish_time {
             storage.latest_price_feed.insert(price_feed.id, price_feed);
@@ -617,8 +608,7 @@ fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpd
         i += 1;
     }
 
-    require(offset == encoded_data.len,);
-
+    require(offset == encoded_data.len, PythError::InvalidUpdateData);
     (number_of_updates, updated_price_feeds)
 }
 
@@ -627,7 +617,7 @@ fn update_price_feeds_from_accumulator_update(accumulator_update: AccumulatorUpd
 fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
     //PLACEHOLDER 
     let mut signatures = Vec::new();
-    signatures.push(Signature {
+    signatures.push(GuardianSignature {
         r: ZERO_B256,
         s: ZERO_B256,
         v: 1u8,
@@ -643,7 +633,6 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
         consistency_level: 1u8,
         payload: Bytes::new(),
         guardian_set_index: 1u32,
-        signatures,
         hash: ZERO_B256,
     }
 }
@@ -667,11 +656,11 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
     let (_, slice) = encoded_vm.split_at(index);
     let (slice, _) = slice.split_at(4); //replace with slice()
     let guardian_set_index = u32::from_be_bytes([ //replace with func
-            slice.get(0).unwrap(),
-            slice.get(1).unwrap(),
-            slice.get(2).unwrap(),
-            slice.get(3).unwrap(),
-        ]);
+        slice.get(0).unwrap(),
+        slice.get(1).unwrap(),
+        slice.get(2).unwrap(),
+        slice.get(3).unwrap(),
+    ]);
     index += 4;
 
     let guardian_set = storage.wormhole_guardian_sets.get(guardian_set_index).try_read();
@@ -682,7 +671,7 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
 
     let signers_length = encoded_vm.get(index);
     require(signers_length.is_some(), WormholeError::SignersLengthIrretrievable);
-    let signers_length = signers_length.unwrap();
+    let signers_length = signers_length.unwrap().as_u64();
     index += 1;
 
     // 66 is the length of each guardian signature
@@ -691,7 +680,7 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
     require(hash_index < encoded_vm.len, WormholeError::InvalidSignatureLength);
 
     let (_, slice) = encoded_vm.split_at(hash_index);
-    let hash = slice.keccak256().keccak256();
+    let hash = Bytes::from(slice.keccak256()).keccak256();
 
     let mut last_index = 0;
     let mut i = 0;
@@ -706,7 +695,7 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
         let r: b256 = slice.into();
         index += 32;
 
-        let (slice, remainder) = remainder.split_at(32); 
+        let (slice, remainder) = remainder.split_at(32);
         let s: b256 = slice.into();
         index += 32;
 
@@ -715,13 +704,12 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
         let v = v.unwrap() + 27;
         index += 1;
 
-        let guardian_set_key = guardian_set.keys.get(guardian_index);
+        let guardian_set_key = guardian_set.keys.get(guardian_index.as_u64());
         require(guardian_set_key.is_some(), WormholeError::GuardianSetKeyIrretrievable);
-  
-        GuardianSignature::new(guardian_index,r,s,v)
-        .verify(guardian_set_key.unwrap(), hash, i, last_index);
 
-        last_index = guardian_index;
+        GuardianSignature::new(guardian_index, r, s, v).verify(guardian_set_key.unwrap().read(), hash, i, last_index);
+
+        last_index = guardian_index.as_u64();
         i += 1;
     }
 
@@ -730,39 +718,32 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
     This quorum check is critical to assessing whether we have enough Guardian signatures to validate a VM.
     If guardian set key length is 0 and signatures length is 0, this could compromise the integrity of both VM and signature verification.
     */
-    require(
-        ((((guardian_set.keys.len() * 10) / 3) * 2) / 10 + 1) <= signers_length
-        , WormholeError::NoQuorum
-    );
+    require(((((guardian_set.keys.len() * 10) / 3) * 2) / 10 + 1) <= signers_length, WormholeError::NoQuorum);
 
     //ignore VM.signatures
-
     let (_, slice) = encoded_vm.split_at(index);
     let (slice, _) = slice.split_at(4);
-    let timestamp = u32::from_be_bytes([
-            slice.get(0).unwrap(),
-            slice.get(1).unwrap(),
-            slice.get(2).unwrap(),
-            slice.get(3).unwrap(),
-        ]);
+    let _timestamp = u32::from_be_bytes([
+        slice.get(0).unwrap(),
+        slice.get(1).unwrap(),
+        slice.get(2).unwrap(),
+        slice.get(3).unwrap(),
+    ]);
     index += 4;
 
     let (_, slice) = encoded_vm.split_at(index);
     let (slice, _) = slice.split_at(4);
     let nonce = u32::from_be_bytes([
-            slice.get(0).unwrap(),
-            slice.get(1).unwrap(),
-            slice.get(2).unwrap(),
-            slice.get(3).unwrap(),
-        ]);
+        slice.get(0).unwrap(),
+        slice.get(1).unwrap(),
+        slice.get(2).unwrap(),
+        slice.get(3).unwrap(),
+    ]);
     index += 4;
 
     let (_, slice) = encoded_vm.split_at(index);
     let (slice, _) = slice.split_at(2);
-    let emitter_chain_id = u16::from_be_bytes([
-            slice.get(0).unwrap(),
-            slice.get(1).unwrap(),
-        ]);
+    let emitter_chain_id = u16::from_be_bytes([slice.get(0).unwrap(), slice.get(1).unwrap()]);
     index += 2;
 
     let (_, slice) = encoded_vm.split_at(index);
@@ -773,15 +754,15 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
     let (_, slice) = encoded_vm.split_at(index);
     let (slice, _) = slice.split_at(8);
     let sequence = u64::from_be_bytes([
-            slice.get(0).unwrap(),
-            slice.get(1).unwrap(),
-            slice.get(2).unwrap(),
-            slice.get(3).unwrap(),
-            slice.get(4).unwrap(),
-            slice.get(5).unwrap(),
-            slice.get(6).unwrap(),
-            slice.get(7).unwrap(),
-        ]);
+        slice.get(0).unwrap(),
+        slice.get(1).unwrap(),
+        slice.get(2).unwrap(),
+        slice.get(3).unwrap(),
+        slice.get(4).unwrap(),
+        slice.get(5).unwrap(),
+        slice.get(6).unwrap(),
+        slice.get(7).unwrap(),
+    ]);
     index += 8;
 
     let consistency_level = encoded_vm.get(index);
@@ -790,18 +771,7 @@ fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> VM {
 
     require(index <= encoded_vm.len, WormholeError::InvalidPayloadLength);
 
-    let payload = let (_, slice) = encoded_vm.split_at(index);
+    let (_, payload) = encoded_vm.split_at(index);
 
-    VM::new(
-        version,
-        guardian_set_index,
-        hash,
-        timestamp,
-        nonce,
-        emitter_chain_id,
-        emitter_address,
-        sequence,
-        consistency_level,
-        payload,
-    )
+    VM::new(version.unwrap(), guardian_set_index, hash, _timestamp, nonce, emitter_chain_id, emitter_address, sequence, consistency_level.unwrap(), payload)
 }

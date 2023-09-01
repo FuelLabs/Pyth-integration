@@ -1,8 +1,15 @@
 library;
 
-use ::data_structures::wormhole_light::{GuardianSet, GuardianSetUpgrade, Provider, GuardianSignature, VM};
-
+use ::data_structures::wormhole_light::{
+    GuardianSet,
+    GuardianSetUpgrade,
+    GuardianSignature,
+    Provider,
+    VM,
+};
+use ::errors::{WormholeError};
 use std::{
+    b512::B512,
     bytes::Bytes,
     constants::{
         BASE_ASSET_ID,
@@ -10,6 +17,7 @@ use std::{
     },
     hash::sha256,
     storage::storage_vec::*,
+    vm::evm::ecr::ec_recover_evm_address,
 };
 
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
@@ -53,56 +61,76 @@ pub fn parse_vm(encoded_vm: Bytes) -> VM {
         consistency_level: 1u8,
         payload: Bytes::new(),
         guardian_set_index: 1u32,
-        signatures,
         hash: ZERO_B256,
     }
 }
 
-/*
-pub struct Signature {
-    guardian_index: u8,
-    r: b256,
-    s: b256,
-    v: u8,
-}
-*/
 // Notes: impl here as difficulties were encountered using errors from within data_structures
 impl GuardianSignature {
-    pub fn new(guardian_index: u8,
-    r: b256,
-    s: b256,
-    v: u8) -> self {
+    pub fn new(guardian_index: u8, r: b256, s: b256, v: u8) -> self {
         GuardianSignature {
             guardian_index,
             r,
             s,
-            v
+            v,
         }
     }
 
     // eip-2098: Compact Signature Representation
     fn compact(self) -> B512 {
-        /*
-        let y_parity = b256::from_be_bytes(
-            [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, self.v];
-        );
+        let y_parity = b256::from_be_bytes([
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            self.v,
+        ]);
         let shifted_y_parity = y_parity.lsh(255);
-        let y_parity_and_s = shifted_y_parity.binary_or(self.s);
-        */
-        B512::from((
-            self.r,
-            b256::from_be_bytes(
-            [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, self.v]
-            .lsh(255)
-            .binary_or(self.s);
-        );
-        ))
-    }
+        // let y_parity_and_s = shifted_y_parity.binary_or(self.s);
+        let y_parity_and_s = b256::binary_or(shifted_y_parity, self.s);
 
-    pub fn verify(self, guardian_set_key: b256, hash: b256, index: u64, last_index: u64) {
+        B512::from((self.r, y_parity_and_s))
+    }
+}
+
+impl GuardianSignature {
+    pub fn verify(
+        self,
+        guardian_set_key: b256,
+        hash: b256,
+        index: u64,
+        last_index: u64,
+) {
         // Ensure that provided signature indices are ascending only
         if index > 0 {
-            require(self.guardian_index > last_index, WormholeError::SignatureIndicesNotAscending);
+            require(self.guardian_index.as_u64() > last_index, WormholeError::SignatureIndicesNotAscending);
         }
 
         let recovered_signer = ec_recover_evm_address(self.compact(), hash);

@@ -20,9 +20,10 @@ pub enum PythError {
     NumberOfUpdatesIrretrievable: (),
     InvalidProof: (),
     IncorrectMessageType: (),
+    InvalidExponent: (),
 }
 
-pub enum WormholeError{
+pub enum WormholeError {
     VmVersionIncompatible: (),
     GuardianSetNotFound: (),
     InvalidGuardianSet: (),
@@ -35,4 +36,6 @@ pub enum WormholeError{
     GuardianSetKeyIrretrievable: (),
     NoQuorum: (),
     VMConsistencyLevelIrretrievable: (),
+    InvalidSignatureLength: (),
+    InvalidPayloadLength: (),
 }

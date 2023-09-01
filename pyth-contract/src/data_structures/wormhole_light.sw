@@ -1,6 +1,6 @@
 library;
 
-use std::{bytes::Bytes, storage::storage_vec::*};
+use std::{bytes::Bytes, constants::ZERO_B256, storage::storage_vec::*};
 
 pub struct GuardianSet {
     expiration_time: u64,
@@ -69,7 +69,7 @@ impl VM {
         sequence: u64,
         consistency_level: u8,
         payload: Bytes,
-    ) -> {
+    ) -> self {
         VM {
             version,
             guardian_set_index,
