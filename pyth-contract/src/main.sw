@@ -344,8 +344,8 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
                 total_number_of_updates += number_of_updates;
                 //log update event {updated_price_feeds}
             },
-            UpdateType::BatchAttestation => {
-                update_price_batch_from_vm(data);
+            UpdateType::BatchAttestation(batch_attestation_update) => {
+                update_price_batch_from_vm(batch_attestation_update.data);
                 total_number_of_updates += 1;
             },
         }
@@ -639,7 +639,10 @@ fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
 
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) {
-    //PLACEHOLDER 
+    let vm = parse_and_verify_pyth_VM(encoded_vm: Bytes);
+
+    // parseAndProcessBatchPriceAttestation(vm)
+
 }
 
 /// Wormhole light Private Functions ///

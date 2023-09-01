@@ -4,6 +4,10 @@ use ::data_structures::price::{Price, PriceFeed};
 
 use std::{bytes::Bytes, constants::ZERO_B256};
 
+pub struct BatchAttestationUpdate {
+    data: Bytes,
+}
+
 pub fn parse_batch_attestation_header(encoded_payload: Bytes) -> (u64, u64, u64) {
     //PLACEHOLDER 
     (1, 1, 1)

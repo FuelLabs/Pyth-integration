@@ -1,12 +1,13 @@
 library;
 
 use ::pyth_accumulator::{accumulator_magic_bytes, AccumulatorUpdate};
+use ::pyth_batch::BatchAttestationUpdate;
 
 use std::bytes::Bytes;
 
 pub enum UpdateType {
     Accumulator: AccumulatorUpdate,
-    BatchAttestation: (),
+    BatchAttestation: BatchAttestationUpdate,
 }
 
 pub fn update_type(data: Bytes) -> UpdateType {
