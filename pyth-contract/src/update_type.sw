@@ -15,6 +15,6 @@ pub fn update_type(data: Bytes) -> UpdateType {
     if data.len > 4 && magic == accumulator_magic_bytes() {
         UpdateType::Accumulator(AccumulatorUpdate::new(data))
     } else {
-        UpdateType::BatchAttestation
+        UpdateType::BatchAttestation((BatchAttestationUpdate::new(data)))
     }
 }

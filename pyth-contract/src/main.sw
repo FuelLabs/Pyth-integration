@@ -154,7 +154,7 @@ impl PythCore for Contract {
                     require(offset == encoded.len, PythError::InvalidUpdateData);
                 },
                 UpdateType::BatchAttestation => {
-                    let vm = parse_and_verify_batch_attestation_VM(data);
+                    let vm = parse_and_verify_wormhole_VM(data);
                     let encoded_payload = vm.payload;
 
                     let (
@@ -164,7 +164,7 @@ impl PythCore for Contract {
                     ) = parse_batch_attestation_header(encoded_payload);
 
                     let mut index_2 = 0;
-                    while index_2 < number_of_attestations {
+                    while index_2 < number_of_attestations.as_u64() {
                         //remove prior price attestations and this price attestation's product_id
                         let (_front, back) = encoded_payload.split_at(attestation_index + 32);
                         //extract this price attestation's price_feed_id
@@ -182,7 +182,7 @@ impl PythCore for Contract {
                             continue;
                         }
 
-                        let price_feed = parse_single_attestation_from_batch(attestation_index, attestation_size, encoded_payload);
+                        let price_feed = parse_single_attestation_from_batch(attestation_size, encoded_payload, attestation_size.as_u64());
 
                         // Check the publish time of the price is within the given range
                         // and only fill PriceFeed if it is.
@@ -194,7 +194,7 @@ impl PythCore for Contract {
                             price_feeds.push(price_feed)
                         }
 
-                        attestation_index += attestation_size;
+                        attestation_index += attestation_size.as_u64();
                         index_2 += 1;
                     }
                 }
@@ -340,12 +340,13 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
         match update_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
+                // updated_price_feeds is for use in logging
                 let (number_of_updates, updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update);
                 total_number_of_updates += number_of_updates;
-                //log update event {updated_price_feeds}
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
-                update_price_batch_from_vm(batch_attestation_update.data);
+                // updated_price_feeds is for use in logging
+                let updated_price_feeds = update_price_batch_from_vm(batch_attestation_update.data);
                 total_number_of_updates += 1;
             },
         }
@@ -355,6 +356,8 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
     let required_fee = total_fee(total_number_of_updates);
     require(msg_amount() >= required_fee, PythError::InsufficientFee);
+
+    //log updated price feed event. A vec of updateeventtype (accumualator(updated_price_feeds), batch(vm.emitterChainId, vm.sequence,updated_price_feeds))
 }
 
 #[storage(read)]
@@ -613,36 +616,43 @@ fn update_price_feeds_from_accumulator_update(
 }
 
 /// Pyth-batch-price Private Functions ///
-#[storage(read)]
-fn parse_and_verify_batch_attestation_VM(encoded_vm: Bytes) -> VM {
-    //PLACEHOLDER 
-    let mut signatures = Vec::new();
-    signatures.push(GuardianSignature {
-        r: ZERO_B256,
-        s: ZERO_B256,
-        v: 1u8,
-        guardian_index: 1u8,
-    });
-    VM {
-        version: 1u8,
-        timestamp: 1u32,
-        nonce: 1u32,
-        emitter_chain_id: 1u16,
-        emitter_address: ZERO_B256,
-        sequence: 1u64,
-        consistency_level: 1u8,
-        payload: Bytes::new(),
-        guardian_set_index: 1u32,
-        hash: ZERO_B256,
-    }
+#[storage(read, write)]
+fn update_price_batch_from_vm(encoded_vm: Bytes) -> Vec<PriceFeed> {
+    let vm = parse_and_verify_pyth_VM(encoded_vm);
+
+    parse_and_process_batch_price_attestation(vm)
 }
 
 #[storage(read, write)]
-fn update_price_batch_from_vm(encoded_vm: Bytes) {
-    let vm = parse_and_verify_pyth_VM(encoded_vm: Bytes);
+fn parse_and_process_batch_price_attestation(vm: VM) -> Vec<PriceFeed> {
+    let (
+        mut attestation_index,
+        number_of_attestations,
+        attestation_size,
+    ) = parse_batch_attestation_header(vm.payload);
 
-    // parseAndProcessBatchPriceAttestation(vm)
+    let mut updated_price_feeds = Vec::new();
+    let mut i: u16 = 0;
+    while i < number_of_attestations {
+        let price_feed = parse_single_attestation_from_batch(attestation_size, vm.payload, attestation_index);
 
+        // Respect specified attestation size for forward-compatability
+        attestation_index += attestation_size.as_u64();
+
+        let latest_publish_time = match storage.latest_price_feed.get(price_feed.id).try_read() {
+            Some(price_feed) => price_feed.price.publish_time,
+            None => 0,
+        };
+
+        if price_feed.price.publish_time > latest_publish_time {
+            storage.latest_price_feed.insert(price_feed.id, price_feed);
+            updated_price_feeds.push(price_feed);
+        }
+
+        i += 1;
+    }
+
+    updated_price_feeds
 }
 
 /// Wormhole light Private Functions ///

@@ -14,8 +14,8 @@ pub struct AccumulatorUpdate {
 }
 
 impl AccumulatorUpdate {
-    pub fn new(data: Bytes) -> self {
-        AccumulatorUpdate { data }
+    pub fn new(data: Bytes) -> Self {
+        Self { data }
     }
 
     pub fn total_updates(self, ref mut offset: u64) -> u64 {
