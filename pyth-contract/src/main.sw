@@ -33,7 +33,7 @@ use ::pyth_accumulator::{
     extract_price_feed_from_merkle_proof,
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
-use ::utils::{difference, find_index_of_price_feed_id};
+use ::utils::{difference, is_target_price_feed_id};
 use ::update_type::{update_type, UpdateType};
 use ::wormhole_light::*;
 
@@ -103,7 +103,7 @@ impl PythCore for Contract {
     fn parse_price_feed_updates(
         max_publish_time: u64,
         min_publish_time: u64,
-        price_feed_ids: Vec<PriceFeedId>,
+        target_price_feed_ids: Vec<PriceFeedId>,
         update_data: Vec<Bytes>,
     ) -> Vec<PriceFeed> {
         require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePaidInTheBaseAsset);
@@ -111,12 +111,10 @@ impl PythCore for Contract {
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-        let mut price_feeds: Vec<PriceFeed> = Vec::with_capacity(price_feed_ids.len);
-
-        let mut index = 0;
-        let update_data_length = update_data.len;
-        while index < update_data_length {
-            let data = update_data.get(index).unwrap();
+        let mut output_price_feeds: Vec<PriceFeed> = Vec::with_capacity(price_feed_ids.len);
+        let mut i = 0;
+        while i < update_data.len {
+            let data = update_data.get(i).unwrap();
 
             match update_type(data) {
                 UpdateType::Accumulator(accumulator_update) => {
@@ -124,32 +122,21 @@ impl PythCore for Contract {
 
                     let (mut offset, digest, number_of_updates, encoded) = parse_accumulator_update(accumulator_update.data, offset);
 
-                    let mut index_2 = 0;
-                    while index_2 < number_of_updates {
+                    let mut i_2 = 0;
+                    while i_2 < number_of_updates {
                         let (mut offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
 
-                        // check whether caller requested for this data
-                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed.id);
+                        if is_target_price_feed_id(target_price_feed_ids, price_feed.id) == false {continue;}
+                        
+                        //check if output_price_feeds already contains a PriceFeed with price_feed.id, is so continue
 
-                        // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
-                        // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
-                        if price_feed_id_index == price_feed_ids.len
-                            || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
-                        {
-                            continue;
-                        }
-
-                        // Check the publish time of the price is within the given range
-                        // and only fill PriceFeed if it is.
-                        // If it is not, default id value of 0 will still be set and
-                        // this will allow other updates for this price id to be processed.
                         if price_feed.price.publish_time >= min_publish_time
                             && price_feed.price.publish_time <= max_publish_time
                         {
-                            price_feeds.push(price_feed)
+                            output_price_feeds.push(price_feed)
                         }
 
-                        index_2 += 1;
+                        i_2 += 1;
                     }
                     require(offset == encoded.len, PythError::InvalidUpdateData);
                 },
@@ -200,7 +187,7 @@ impl PythCore for Contract {
                 }
             }
 
-            index += 1;
+            i += 1;
         }
 
         let mut index_3 = 0;
