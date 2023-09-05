@@ -1,6 +1,6 @@
 library;
 
-use ::data_structures::{price::{PriceFeedId}};
+use ::data_structures::{price::{PriceFeed, PriceFeedId}};
 use std::bytes::Bytes;
 
 pub fn difference(x: u64, y: u64) -> u64 {
@@ -13,8 +13,7 @@ pub fn is_target_price_feed_id(
 ) -> bool {
     let mut i = 0;
     while i < target_price_feed_ids.len {
-        if target_price_feed_ids.get(i).unwrap() == price_feed_id
-        {
+        if target_price_feed_ids.get(i).unwrap() == price_feed_id {
             return true;
         }
         i += 1;
@@ -29,4 +28,19 @@ pub fn absolute_of_exponent(exponent: u32) -> u32 {
     } else {
         u32::max() - exponent + 1
     }
+}
+
+pub fn contains_price_feed_id(
+    output_price_feeds: Vec<PriceFeed>,
+    price_feed_id: PriceFeedId,
+) -> bool {
+    let mut i = 0;
+    while i < output_price_feeds.len {
+        if output_price_feeds.get(i).unwrap().id == price_feed_id {
+            return true;
+        }
+        i += 1;
+    }
+
+    false
 }

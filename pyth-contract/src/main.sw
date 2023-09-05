@@ -33,7 +33,7 @@ use ::pyth_accumulator::{
     extract_price_feed_from_merkle_proof,
 };
 use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
-use ::utils::{difference, is_target_price_feed_id};
+use ::utils::{contains_price_feed_id, difference, is_target_price_feed_id};
 use ::update_type::{update_type, UpdateType};
 use ::wormhole_light::*;
 
@@ -111,7 +111,7 @@ impl PythCore for Contract {
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-        let mut output_price_feeds: Vec<PriceFeed> = Vec::with_capacity(price_feed_ids.len);
+        let mut output_price_feeds: Vec<PriceFeed> = Vec::with_capacity(target_price_feed_ids.len);
         let mut i = 0;
         while i < update_data.len {
             let data = update_data.get(i).unwrap();
@@ -126,13 +126,19 @@ impl PythCore for Contract {
                     while i_2 < number_of_updates {
                         let (mut offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
 
-                        if is_target_price_feed_id(target_price_feed_ids, price_feed.id) == false {continue;}
-                        
-                        //check if output_price_feeds already contains a PriceFeed with price_feed.id, is so continue
-
-                        if price_feed.price.publish_time >= min_publish_time
-                            && price_feed.price.publish_time <= max_publish_time
+                        if is_target_price_feed_id(target_price_feed_ids, price_feed.id) == false
                         {
+                            continue;
+                        }
+
+                        if price_feed.price.publish_time >= min_publish_time && price_feed.price.publish_time <= max_publish_time {
+                            // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue as we only want 1 
+                            // output PriceFeed per target ID
+                            if contains_price_feed_id(output_price_feeds, price_feed.id)
+                            {
+                                continue;
+                            }
+
                             output_price_feeds.push(price_feed)
                         }
 
@@ -140,49 +146,41 @@ impl PythCore for Contract {
                     }
                     require(offset == encoded.len, PythError::InvalidUpdateData);
                 },
-                UpdateType::BatchAttestation => {
-                    let vm = parse_and_verify_wormhole_VM(data);
-                    let encoded_payload = vm.payload;
+                UpdateType::BatchAttestation(batch_attestation_update) => {
+                    let vm = parse_and_verify_pyth_VM(batch_attestation_update.data);
 
                     let (
                         mut attestation_index,
                         number_of_attestations,
                         attestation_size,
-                    ) = parse_batch_attestation_header(encoded_payload);
+                    ) = parse_batch_attestation_header(vm.payload);
 
-                    let mut index_2 = 0;
-                    while index_2 < number_of_attestations.as_u64() {
-                        //remove prior price attestations and this price attestation's product_id
-                        let (_front, back) = encoded_payload.split_at(attestation_index + 32);
-                        //extract this price attestation's price_feed_id
-                        let (price_feed_id, _back) = back.split_at(32);
-                        let price_feed_id: b256 = price_feed_id.into();
+                    let mut i_2: u16 = 0;
+                    while i_2 < number_of_attestations {
+                        let (_, slice) = vm.payload.split_at(attestation_index + 32);
+                        let (price_feed_id, _) = slice.split_at(32);
+                        let price_feed_id: PriceFeedId = price_feed_id.into();
 
-                        // check whether caller requested for this data
-                        let price_feed_id_index = find_index_of_price_feed_id(price_feed_ids, price_feed_id);
-
-                        // If price_feeds[price_feed_id_index].id != ZERO_B256 then it means that there was a valid
-                        // update for price_feed_ids[price_feed_id_index] and we don't need to process this one.
-                        if price_feed_id_index == price_feed_ids.len
-                            || price_feeds.get(price_feed_id_index).unwrap().id != ZERO_B256
+                        if is_target_price_feed_id(target_price_feed_ids, price_feed_id) == false
                         {
                             continue;
                         }
 
-                        let price_feed = parse_single_attestation_from_batch(attestation_size, encoded_payload, attestation_size.as_u64());
+                        let price_feed = parse_single_attestation_from_batch(attestation_size, vm.payload, attestation_index);
 
-                        // Check the publish time of the price is within the given range
-                        // and only fill PriceFeed if it is.
-                        // If it is not, default id value of 0 will still be set and
-                        // this will allow other updates for this price id to be processed.
-                        if price_feed.price.publish_time >= min_publish_time
-                            && price_feed.price.publish_time <= max_publish_time
-                        {
-                            price_feeds.push(price_feed)
+                        if price_feed.price.publish_time >= min_publish_time && price_feed.price.publish_time <= max_publish_time {
+                            // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue; 
+                            // as we only want 1 output PriceFeed per target ID
+                            if contains_price_feed_id(output_price_feeds, price_feed.id)
+                            {
+                                continue;
+                            }
+
+                            output_price_feeds.push(price_feed)
                         }
 
                         attestation_index += attestation_size.as_u64();
-                        index_2 += 1;
+                        i_2 += 1;
                     }
                 }
             }
@@ -190,15 +188,9 @@ impl PythCore for Contract {
             i += 1;
         }
 
-        let mut index_3 = 0;
-        let price_feed_ids_length = price_feed_ids.len;
-        while index_3 < price_feed_ids_length {
-            require(price_feeds.get(index_3).unwrap().id != ZERO_B256, PythError::PriceFeedNotFoundWithinRange);
+        require(target_price_feed_ids.len == output_price_feeds.len, PythError::PriceFeedNotFoundWithinRange);
 
-            index_3 += 1;
-        }
-
-        price_feeds
+        output_price_feeds
     }
 
     #[storage(read)]
