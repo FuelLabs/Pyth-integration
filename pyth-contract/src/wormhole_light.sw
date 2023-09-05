@@ -5,7 +5,7 @@ use ::data_structures::wormhole_light::{
     GuardianSetUpgrade,
     GuardianSignature,
     Provider,
-    VM,
+    WormholeVM,
 };
 use ::errors::{WormholeError};
 use std::{
@@ -39,29 +39,6 @@ pub fn parse_guardian_set_upgrade(encoded_upgrade: Bytes) -> GuardianSetUpgrade 
         module: ZERO_B256,
         new_guardian_set: guardian_set,
         new_guardian_set_index: 0u32,
-    }
-}
-
-pub fn parse_vm(encoded_vm: Bytes) -> VM {
-    //PLACEHOLDER 
-    let mut signatures = Vec::new();
-    signatures.push(GuardianSignature {
-        r: ZERO_B256,
-        s: ZERO_B256,
-        v: 1u8,
-        guardian_index: 1u8,
-    });
-    VM {
-        version: 1u8,
-        timestamp: 1u32,
-        nonce: 1u32,
-        emitter_chain_id: 1u16,
-        emitter_address: ZERO_B256,
-        sequence: 1u64,
-        consistency_level: 1u8,
-        payload: Bytes::new(),
-        guardian_set_index: 1u32,
-        hash: ZERO_B256,
     }
 }
 

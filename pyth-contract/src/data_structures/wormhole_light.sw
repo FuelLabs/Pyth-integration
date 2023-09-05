@@ -28,7 +28,7 @@ pub struct GuardianSignature {
     v: u8,
 }
 
-pub struct VM {
+pub struct WormholeVM {
     version: u8,
     guardian_set_index: u32,
     hash: b256,
@@ -42,9 +42,9 @@ pub struct VM {
     payload: Bytes,
 }
 
-impl VM {
+impl WormholeVM {
     pub fn default() -> self {
-        VM {
+        WormholeVM {
             version: 0u8,
             guardian_set_index: 0u32,
             hash: ZERO_B256,
@@ -70,7 +70,7 @@ impl VM {
         consistency_level: u8,
         payload: Bytes,
     ) -> self {
-        VM {
+        WormholeVM {
             version,
             guardian_set_index,
             hash,
