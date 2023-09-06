@@ -95,7 +95,7 @@ pub fn parse_single_attestation_from_batch(
     let price_feed_id: PriceFeedId = price_feed_id.into();
     attestation_index += 32;
 
-    let price = u64::from_be_bytes([
+    let mut price = u64::from_be_bytes([
         encoded_payload.get(attestation_index).unwrap(),
         encoded_payload.get(attestation_index + 1).unwrap(),
         encoded_payload.get(attestation_index + 2).unwrap(),
@@ -107,7 +107,7 @@ pub fn parse_single_attestation_from_batch(
     ]);
     attestation_index += 8;
 
-    let confidence = u64::from_be_bytes([
+    let mut confidence = u64::from_be_bytes([
         encoded_payload.get(attestation_index).unwrap(),
         encoded_payload.get(attestation_index + 1).unwrap(),
         encoded_payload.get(attestation_index + 2).unwrap(),
@@ -163,7 +163,7 @@ pub fn parse_single_attestation_from_batch(
     // Additionally skip number_of publishers (8 bytes) and attestation_time (8 bytes); as unused
     attestation_index += 17;
 
-    let publish_time = u64::from_be_bytes([
+    let mut publish_time = u64::from_be_bytes([
         encoded_payload.get(attestation_index).unwrap(),
         encoded_payload.get(attestation_index + 1).unwrap(),
         encoded_payload.get(attestation_index + 2).unwrap(),
@@ -182,7 +182,7 @@ pub fn parse_single_attestation_from_batch(
         // the previous price that is parsed here.
 
         // previous publish time
-        let publish_time = u64::from_be_bytes([
+        publish_time = u64::from_be_bytes([
             encoded_payload.get(attestation_index).unwrap(),
             encoded_payload.get(attestation_index + 1).unwrap(),
             encoded_payload.get(attestation_index + 2).unwrap(),
@@ -195,7 +195,7 @@ pub fn parse_single_attestation_from_batch(
         attestation_index += 8;
 
         // previous price
-        let price = u64::from_be_bytes([
+        price = u64::from_be_bytes([
             encoded_payload.get(attestation_index).unwrap(),
             encoded_payload.get(attestation_index + 1).unwrap(),
             encoded_payload.get(attestation_index + 2).unwrap(),
@@ -208,7 +208,7 @@ pub fn parse_single_attestation_from_batch(
         attestation_index += 8;
 
         // previous confidence
-        let confidence = u64::from_be_bytes([
+        confidence = u64::from_be_bytes([
             encoded_payload.get(attestation_index).unwrap(),
             encoded_payload.get(attestation_index + 1).unwrap(),
             encoded_payload.get(attestation_index + 2).unwrap(),

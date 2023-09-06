@@ -9,6 +9,7 @@ use ::data_structures::{
     },
     wormhole_light::{
         GuardianSet,
+        Provider,
     },
 };
 use std::{bytes::Bytes, storage::storage_vec::*};
@@ -278,13 +279,16 @@ abi PythInfo {
 
 abi WormholeGuardians {
     #[storage(read)]
+    fn current_guardian_set_index() -> u32;
+
+    #[storage(read)]
+    fn current_wormhole_provider() -> Provider;
+
+    #[storage(read)]
     fn governance_action_is_consumed(hash: b256) -> bool;
 
     #[storage(read)]
     fn guardian_set(index: u32) -> GuardianSet;
-
-    #[storage(read)]
-    fn current_guardian_set_index() -> u32;
 
     #[storage(read, write)]
     fn submit_new_guardian_set(vm: Bytes);

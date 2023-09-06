@@ -153,7 +153,7 @@ impl PythCore for Contract {
                     require(offset == encoded.len, PythError::InvalidUpdateData);
                 },
                 UpdateType::BatchAttestation(batch_attestation_update) => {
-                    let vm = parse_and_verify_pyth_VM(batch_attestation_update.data);
+                    let vm = parse_and_verify_pyth_vm(batch_attestation_update.data);
 
                     let (
                         mut attestation_index,
@@ -442,10 +442,13 @@ fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
 
 impl WormholeGuardians for Contract {
     #[storage(read)]
-    fn governance_action_is_consumed(hash: b256) -> bool {
-        let consumed = storage.wormhole_consumed_governance_actions.get(hash).try_read();
-        require(consumed.is_some(), PythError::WormholeGovernanceActionNotFound);
-        consumed.unwrap()
+    fn current_guardian_set_index() -> u32 {
+        current_guardian_set_index()
+    }
+
+    #[storage(read)]
+    fn current_wormhole_provider() -> Provider {
+        current_wormhole_provider()
     }
 
     #[storage(read)]
@@ -456,23 +459,13 @@ impl WormholeGuardians for Contract {
     }
 
     #[storage(read)]
-    fn current_guardian_set_index() -> u32 {
-        current_guardian_set_index()
-    }
-
-    #[storage(read)]
-    fn current_wormhole_provider() -> Provider {
-        current_wormhole_provider()
+    fn governance_action_is_consumed(governance_action_hash: b256) -> bool {
+        governance_action_is_consumed(governance_action_hash)
     }
 
     #[storage(read, write)]
     fn submit_new_guardian_set(encoded_vm: Bytes) {
         submit_new_guardian_set(encoded_vm)
-    }
-
-     #[storage(read, write)]
-    fn governance_action_is_consumed(governance_action_hash: b256) -> bool{
-        governance_action_is_consumed(governance_action_hash)
     }
 }
 
@@ -487,50 +480,37 @@ fn current_wormhole_provider() -> Provider {
     storage.wormhole_provider.read()
 }
 
-#[storage(read, write)]
-    fn governance_action_is_consumed(governance_action_hash: b256) -> bool{
-        match storage.wormhole_consumed_governance_actions.get(governance_action_hash).try_read() {
-            Some(_bool) => _bool,
-            None => false,
-        }
+#[storage(read)]
+fn governance_action_is_consumed(governance_action_hash: b256) -> bool {
+    match storage.wormhole_consumed_governance_actions.get(governance_action_hash).try_read() {
+        Some(bool_) => bool_,
+        None => false,
     }
+}
 
 #[storage(read, write)]
 fn submit_new_guardian_set(encoded_vm: Bytes) { //-------------------------------------------------------------------//-------------------------------------------------------------------
-    let wormhole_vm = parse_and_verify_wormhole_VM(encoded_vm);
-    require(wormhole_vm.guardian_set_index == current_guardian_set_index(), WormholeError::NotSignedByCurrentGuardianSet);
-    require(wormhole_vm.emitter_chain_id == current_wormhole_provider().governance_chain_id, WormholeError::InvalidGovernanceChain);
-    require(wormhole_vm.emitter_address == current_wormhole_provider().governance_contract, WormholeError::InvalidGovernanceContract);
+    let vm = parse_and_verify_wormhole_vm(encoded_vm);
+    require(vm.guardian_set_index == current_guardian_set_index(), WormholeError::NotSignedByCurrentGuardianSet);
+    require(vm.emitter_chain_id == current_wormhole_provider().governance_chain_id, WormholeError::InvalidGovernanceChain);
+    require(vm.emitter_address == current_wormhole_provider().governance_contract, WormholeError::InvalidGovernanceContract);
+    require(governance_action_is_consumed(vm.governance_action_hash) == false, WormholeError::GovernanceActionAlreadyConsumed);
 
-
-
-
-
-
-
-    let upgrade = parse_guardian_set_upgrade(vm.payload);
-    require(upgrade.module == UPGRADE_MODULE, PythError::InvalidUpgradeModule);
-    require(upgrade.new_guardian_set.keys.len() > 0, PythError::NewGuardianSetIsEmpty);
     let current_guardian_set_index = current_guardian_set_index();
-    require(upgrade.new_guardian_set_index > current_guardian_set_index, PythError::NewGuardianSetIndexIsInvalid);
+    let upgrade = parse_guardian_set_upgrade(current_guardian_set_index, vm.payload);
 
-    storage.wormhole_consumed_governance_actions.insert(vm.hash, true);
+    storage.wormhole_consumed_governance_actions.insert(vm.governance_action_hash, true);
 
-    // Set expiry if Guardian set exists
+    // Set expiry if current GuardianSet exists
     let current_guardian_set = storage.wormhole_guardian_sets.get(current_guardian_set_index).try_read();
     if current_guardian_set.is_some() {
         let mut current_guardian_set = current_guardian_set.unwrap();
-        current_guardian_set.expiration_time = timestamp() + 86400u64;
+        current_guardian_set.expiration_time = timestamp() + 86400;
         storage.wormhole_guardian_sets.insert(current_guardian_set_index, current_guardian_set);
     }
 
     storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
     storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
-}
-
-#[storage(read)]
-fn verify_governance_vm(vm: WormholeVM) {
-    //PLACEHOLDER
 }
 
 /// General Private Functions ///
@@ -541,8 +521,8 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 
 /// Pyth-accumulator Private Functions ///
 #[storage(read)]
-fn parse_and_verify_pyth_VM(encoded_vm: Bytes) -> WormholeVM {
-    let vm = parse_and_verify_wormhole_VM(encoded_vm);
+fn parse_and_verify_pyth_vm(encoded_vm: Bytes) -> WormholeVM {
+    let vm = parse_and_verify_wormhole_vm(encoded_vm);
 
     //TODO uncomment when Hash is included in release
     // require(valid_data_source(DataSource::new(vm.emitter_chain_id, vm.emitter_address)), PythError::InvalidUpdateDataSource);
@@ -569,7 +549,7 @@ fn parse_accumulator_update(
 
     let (_, slice) = encoded_slice.split_at(offset);
     let (encoded_vm, _) = slice.split_at(womrhole_proof_size);
-    let vm = parse_and_verify_pyth_VM(encoded_vm);
+    let vm = parse_and_verify_pyth_vm(encoded_vm);
     offset += womrhole_proof_size;
 
     let encoded_payload = vm.payload;
@@ -633,7 +613,7 @@ fn update_price_feeds_from_accumulator_update(
 /// Pyth-batch-price Private Functions ///
 #[storage(read, write)]
 fn update_price_batch_from_vm(encoded_vm: Bytes) -> Vec<PriceFeed> {
-    let vm = parse_and_verify_pyth_VM(encoded_vm);
+    let vm = parse_and_verify_pyth_vm(encoded_vm);
 
     parse_and_process_batch_price_attestation(vm)
 }
@@ -672,7 +652,7 @@ fn parse_and_process_batch_price_attestation(vm: WormholeVM) -> Vec<PriceFeed> {
 
 /// Wormhole light Private Functions ///
 #[storage(read)]
-fn parse_and_verify_wormhole_VM(encoded_vm: Bytes) -> WormholeVM {
+fn parse_and_verify_wormhole_vm(encoded_vm: Bytes) -> WormholeVM {
     let mut index = 0;
 
     let mut vm = WormholeVM::default();

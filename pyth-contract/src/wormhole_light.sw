@@ -22,24 +22,63 @@ use std::{
 
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
 
-pub fn parse_guardian_set_upgrade(encoded_upgrade: Bytes) -> GuardianSetUpgrade {
-    //PLACEHOLDER
-    let guardian_set_index = 0;
-    let guardian_set = GuardianSet {
-        expiration_time: 0u64,
-        keys: StorageKey {
-            slot: sha256(("guardian_set_keys", guardian_set_index)),
-            offset: 0,
-            field_id: ZERO_B256,
-        },
-    };
-    GuardianSetUpgrade {
-        action: 0u8,
-        chain: 0u16,
-        module: ZERO_B256,
-        new_guardian_set: guardian_set,
-        new_guardian_set_index: 0u32,
+#[storage(read, write)]
+pub fn parse_guardian_set_upgrade(
+    current_guardian_set_index: u32,
+    encoded_upgrade: Bytes,
+) -> GuardianSetUpgrade {
+    let mut index = 0;
+
+    let (_, slice) = encoded_upgrade.split_at(index);
+    let (module, _) = slice.split_at(32);
+    let module: b256 = module.into();
+    require(module == UPGRADE_MODULE, "invalid Module");
+    index += 32;
+
+    let action = encoded_upgrade.get(index).unwrap();
+    require(action == 2, WormholeError::InvalidGuardianSetUpgrade);
+    index += 1;
+
+    let chain = u16::from_be_bytes([
+        encoded_upgrade.get(index).unwrap(),
+        encoded_upgrade.get(index + 1).unwrap(),
+    ]);
+    index += 2;
+
+    let new_guardian_set_index = u32::from_be_bytes([
+        encoded_upgrade.get(index).unwrap(),
+        encoded_upgrade.get(index + 1).unwrap(),
+        encoded_upgrade.get(index + 2).unwrap(),
+        encoded_upgrade.get(index + 3).unwrap(),
+    ]);
+    require(new_guardian_set_index > current_guardian_set_index, WormholeError::NewGuardianSetIndexIsInvalid);
+    index += 4;
+
+    let guardian_length = encoded_upgrade.get(index).unwrap();
+    index += 1;
+
+    let mut new_guardian_set = GuardianSet::new(0, StorageKey {
+        slot: sha256(("guardian_set_keys", new_guardian_set_index)),
+        offset: 0,
+        field_id: ZERO_B256,
+    });
+
+    let mut i: u8 = 0;
+    while i < guardian_length {
+        let (_, slice) = encoded_upgrade.split_at(index);
+        let (key, _) = slice.split_at(20);
+        let key: b256 = key.into();
+
+        new_guardian_set.keys.push(key);
+
+        index += 20;
+        i += 1;
     }
+
+    require(new_guardian_set.keys.len() > 0, WormholeError::NewGuardianSetIsEmpty);
+    require(encoded_upgrade.len == index, WormholeError::InvalidGuardianSetUpgrade);
+
+    GuardianSetUpgrade::new(action, chain, module, new_guardian_set, new_guardian_set_index)
 }
 
 // Notes: impl here as difficulties were encountered using errors from within data_structures
@@ -90,7 +129,6 @@ impl GuardianSignature {
             self.v,
         ]);
         let shifted_y_parity = y_parity.lsh(255);
-        // let y_parity_and_s = shifted_y_parity.binary_or(self.s);
         let y_parity_and_s = b256::binary_or(shifted_y_parity, self.s);
 
         B512::from((self.r, y_parity_and_s))

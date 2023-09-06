@@ -10,7 +10,6 @@ pub enum PythError {
     InvalidUpdateDataSource: (),
     InvalidUpgradeModule: (),
     NewGuardianSetIsEmpty: (),
-    NewGuardianSetIndexIsInvalid: (),
     /// Emitted when a Price's `publish_time` is stale.
     OutdatedPrice: (),
     /// Emitted when a PriceFeed could not be retrieved.
@@ -38,4 +37,11 @@ pub enum WormholeError {
     VMConsistencyLevelIrretrievable: (),
     InvalidSignatureLength: (),
     InvalidPayloadLength: (),
+    InvalidGuardianSetUpgrade: (),
+    NewGuardianSetIsEmpty: (),
+    NotSignedByCurrentGuardianSet: (),
+    InvalidGovernanceChain: (),
+    InvalidGovernanceContract: (),
+    GovernanceActionAlreadyConsumed: (),
+    NewGuardianSetIndexIsInvalid: (),
 }

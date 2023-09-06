@@ -7,12 +7,39 @@ pub struct GuardianSet {
     keys: StorageKey<StorageVec<b256>>,
 }
 
+impl GuardianSet {
+    pub fn new(expiration_time: u64, keys: StorageKey<StorageVec<b256>>) -> self {
+        GuardianSet {
+            expiration_time,
+            keys,
+        }
+    }
+}
+
 pub struct GuardianSetUpgrade {
     action: u8,
     chain: u16,
     module: b256,
     new_guardian_set: GuardianSet,
     new_guardian_set_index: u32,
+}
+
+impl GuardianSetUpgrade {
+    pub fn new(
+        action: u8,
+        chain: u16,
+        module: b256,
+        new_guardian_set: GuardianSet,
+        new_guardian_set_index: u32,
+    ) -> self {
+        GuardianSetUpgrade {
+            action,
+            chain,
+            module,
+            new_guardian_set,
+            new_guardian_set_index,
+        }
+    }
 }
 
 pub struct Provider {
@@ -31,7 +58,7 @@ pub struct GuardianSignature {
 pub struct WormholeVM {
     version: u8,
     guardian_set_index: u32,
-    hash: b256,
+    governance_action_hash: b256,
     // signatures: Vec<GuardianSignature>, //Shown here to represent data layout of VM, but not needed 
     timestamp: u32,
     nonce: u32,
@@ -47,7 +74,7 @@ impl WormholeVM {
         WormholeVM {
             version: 0u8,
             guardian_set_index: 0u32,
-            hash: ZERO_B256,
+            governance_action_hash: ZERO_B256,
             timestamp: 0u32,
             nonce: 0u32,
             emitter_chain_id: 0u16,
@@ -61,7 +88,7 @@ impl WormholeVM {
     pub fn new(
         version: u8,
         guardian_set_index: u32,
-        hash: b256,
+        governance_action_hash: b256,
         timestamp: u32,
         nonce: u32,
         emitter_chain_id: u16,
@@ -73,7 +100,7 @@ impl WormholeVM {
         WormholeVM {
             version,
             guardian_set_index,
-            hash,
+            governance_action_hash,
             timestamp,
             nonce,
             emitter_chain_id,
