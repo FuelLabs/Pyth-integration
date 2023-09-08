@@ -130,7 +130,8 @@ impl PythCore for Contract {
 
                     let mut i_2 = 0;
                     while i_2 < number_of_updates {
-                        let (mut offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
+                        let (new_offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded, offset);
+                        offset = new_offset;
 
                         if is_target_price_feed_id(target_price_feed_ids, price_feed.id) == false
                         {
@@ -591,7 +592,8 @@ fn update_price_feeds_from_accumulator_update(
     let mut updated_price_feeds = Vec::new();
     let mut i = 0;
     while i < number_of_updates {
-        let (offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded_data, offset);
+        let (new_offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded_data, offset);
+        offset = new_offset;
 
         let latest_publish_time = match storage.latest_price_feed.get(price_feed.id).try_read() {
             Some(price_feed) => price_feed.price.publish_time,
@@ -654,8 +656,6 @@ fn parse_and_process_batch_price_attestation(vm: WormholeVM) -> Vec<PriceFeed> {
 #[storage(read)]
 fn parse_and_verify_wormhole_vm(encoded_vm: Bytes) -> WormholeVM {
     let mut index = 0;
-
-    let mut vm = WormholeVM::default();
 
     let version = encoded_vm.get(index);
     require(version.is_some() && version.unwrap() == 1, WormholeError::VmVersionIncompatible);
