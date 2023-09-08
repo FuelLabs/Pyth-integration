@@ -21,7 +21,7 @@ use ::data_structures::{
     wormhole_light::{
         GuardianSet,
         GuardianSignature,
-        Provider,
+        WormholeProvider,
         WormholeVM,
     },
 };
@@ -55,12 +55,15 @@ use std::{
 use src_5::Ownership;
 use ownership::*;
 
+const DEPLOYER: b256 = ZERO_B256;
+
 storage {
-    owner: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
+    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(DEPLOYER))),
+
     /// PYTH STATE ///
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
-    is_valid_data_source: StorageMap<b256, bool> = StorageMap {},
+    is_valid_data_source: StorageMap<DataSource, bool> = StorageMap {},
     // Mapping of cached price information
     // priceId => PriceInfo
     latest_price_feed: StorageMap<PriceFeedId, PriceFeed> = StorageMap {},
@@ -71,9 +74,7 @@ storage {
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
     valid_time_period_seconds: u64 = 0,
-    wormhole_contract_id: ContractId = ContractId {
-        value: ZERO_B256,
-    },
+    
     ///  WORMHOLE STATE ///
     // Mapping of consumed governance actions
     wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
@@ -82,7 +83,7 @@ storage {
     // Current active guardian set index
     wormhole_guardian_set_index: u32 = 0,
     // Using Ethereum's Wormhole governance
-    wormhole_provider: Provider = Provider {
+    wormhole_provider: WormholeProvider = WormholeProvider {
         chain_id: 0u16,
         governance_chain_id: 0u16,
         governance_contract: ZERO_B256,
@@ -327,12 +328,12 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
         match update_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
                 // updated_price_feeds is for use in logging
-                let (number_of_updates, updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update);
+                let (number_of_updates, _updated_price_feeds) = update_price_feeds_from_accumulator_update(accumulator_update);
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
                 // updated_price_feeds is for use in logging
-                let updated_price_feeds = update_price_batch_from_vm(batch_attestation_update.data);
+                let _updated_price_feeds = update_price_batch_from_vm(batch_attestation_update.data);
                 total_number_of_updates += 1;
             },
         }
@@ -353,34 +354,22 @@ fn valid_time_period() -> u64 {
 
 impl PythInit for Contract {
     #[storage(read, write)]
-    fn initialize(
-        wormhole_contract_id: ContractId,
-        data_source_emitter_chain_ids: Vec<u16>,
-        data_source_emitter_addresses: Vec<b256>,
-        governance_emitter_chainId: u16,
-        governance_emitter_address: b256,
-        governance_initial_sequence: u64,
-        valid_time_period_seconds: u64,
+    fn constructor(
+        data_sources: Vec<DataSource>,
         single_update_fee_in_wei: u64,
+        valid_time_period_seconds: u64,
         wormhole_guardian_set_upgrade: Bytes,
+        wormhole_provider: WormholeProvider,
     ) {
-        storage.owner.only_owner();
+        storage.deployer.only_owner();
 
-        require(data_source_emitter_chain_ids.len == data_source_emitter_addresses.len, PythError::InvalidArgument);
-
-        storage.wormhole_contract_id.write(wormhole_contract_id);
-
-        let mut index = 0;
-        let data_source_emitter_chain_ids_length = data_source_emitter_chain_ids.len;
-        while index < data_source_emitter_chain_ids_length {
-            let data_source = DataSource::new(data_source_emitter_chain_ids.get(index).unwrap(), data_source_emitter_addresses.get(index).unwrap());
-
-            //TODO uncomment when Hash is included in release
-            // storage.is_valid_data_source.insert(data_source.hash(), true);
-
+        let mut i = 0;
+        while i < data_sources.len {
+            let data_source = data_sources.get(i).unwrap();
+            storage.is_valid_data_source.insert(data_source, true);
             storage.valid_data_sources.push(data_source);
 
-            index += 1;
+            i += 1;
         }
 
         storage.valid_time_period_seconds.write(valid_time_period_seconds);
@@ -388,7 +377,9 @@ impl PythInit for Contract {
 
         submit_new_guardian_set(wormhole_guardian_set_upgrade);
 
-        storage.owner.renounce_ownership();
+        storage.wormhole_provider.write(wormhole_provider);
+
+        storage.deployer.renounce_ownership();
     }
 }
 
@@ -397,11 +388,6 @@ impl PythInfo for Contract {
     fn current_valid_data_sources() -> StorageVec<DataSource> {
         storage.valid_data_sources.read()
     }
-
-    //TODO uncomment when Hash is included in release
-    // fn hash_data_source(data_source: DataSource) -> b256 {
-    //     data_source.hash()
-    // }
 
     #[storage(read)]
     fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
@@ -420,16 +406,13 @@ impl PythInfo for Contract {
         price_feed.unwrap()
     }
 
-    //TODO uncomment when Hash is included in release
-    // #[storage(read)]
-    // fn valid_data_source(data_source: DataSource) -> bool {
-    //     match storage.is_valid_data_source.get(
-    //             data_source.hash()
-    //         ).try_read() {
-    //             Some(bool) => bool,
-    //             None => false,
-    //         }
-    // }
+    #[storage(read)]
+    fn valid_data_source(data_source: DataSource) -> bool {
+        match storage.is_valid_data_source.get(data_source).try_read() {
+            Some(bool) => bool,
+            None => false,
+        }
+    }
 }
 
 /// PythInfo Private Functions ///
@@ -448,7 +431,7 @@ impl WormholeGuardians for Contract {
     }
 
     #[storage(read)]
-    fn current_wormhole_provider() -> Provider {
+    fn current_wormhole_provider() -> WormholeProvider {
         current_wormhole_provider()
     }
 
@@ -477,7 +460,7 @@ fn current_guardian_set_index() -> u32 {
 }
 
 #[storage(read)]
-fn current_wormhole_provider() -> Provider {
+fn current_wormhole_provider() -> WormholeProvider {
     storage.wormhole_provider.read()
 }
 
@@ -490,7 +473,7 @@ fn governance_action_is_consumed(governance_action_hash: b256) -> bool {
 }
 
 #[storage(read, write)]
-fn submit_new_guardian_set(encoded_vm: Bytes) { //-------------------------------------------------------------------//-------------------------------------------------------------------
+fn submit_new_guardian_set(encoded_vm: Bytes) {
     let vm = parse_and_verify_wormhole_vm(encoded_vm);
     require(vm.guardian_set_index == current_guardian_set_index(), WormholeError::NotSignedByCurrentGuardianSet);
     require(vm.emitter_chain_id == current_wormhole_provider().governance_chain_id, WormholeError::InvalidGovernanceChain);

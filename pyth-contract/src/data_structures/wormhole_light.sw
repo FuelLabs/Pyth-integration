@@ -42,7 +42,7 @@ impl GuardianSetUpgrade {
     }
 }
 
-pub struct Provider {
+pub struct WormholeProvider {
     chain_id: u16,
     governance_chain_id: u16,
     governance_contract: b256,

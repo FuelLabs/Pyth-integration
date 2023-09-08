@@ -4,7 +4,7 @@ use ::data_structures::wormhole_light::{
     GuardianSet,
     GuardianSetUpgrade,
     GuardianSignature,
-    Provider,
+    WormholeProvider,
     WormholeVM,
 };
 use ::errors::{WormholeError};
