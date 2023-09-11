@@ -47,8 +47,6 @@ use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use src_5::Ownership;
 use ownership::*;
 
-// Set before deployment
-const DEPLOYER: b256 = ZERO_B256;
 
 storage {
     deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(DEPLOYER))),
@@ -67,7 +65,7 @@ storage {
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
     valid_time_period_seconds: u64 = 0,
-    
+
     ///  WORMHOLE STATE ///
     // Mapping of consumed governance actions
     wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
