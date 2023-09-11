@@ -1,6 +1,7 @@
 library;
 
-use std::{bytes::Bytes, constants::ZERO_B256, storage::storage_vec::*};
+use std::{bytes::Bytes, constants::ZERO_B256, storage::storage_vec::*, vm::evm::ecr::ec_recover_evm_address};
+use ::errors::{WormholeError};
 
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
 

@@ -1,6 +1,8 @@
 library;
 
+use ::data_structures::{price::{PriceFeed, PriceFeedId}, wormhole_light::{WormholeVM, GuardianSet}};
 use std::bytes::Bytes;
+use ::errors::{PythError};
 
 const BATCH_MAGIC: u32 = 0x50325748;
 

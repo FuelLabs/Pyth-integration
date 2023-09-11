@@ -1,5 +1,11 @@
 library;
 
+use ::data_structures::{wormhole_light::{WormholeVM, GuardianSet}};
+use ::errors::{PythError};
+use ::pyth_merkle_proof::validate_proof;
+
+use std::bytes::Bytes;
+
 // A price with a degree of uncertainty, represented as a price +- a confidence interval.
 //
 // The confidence interval roughly corresponds to the standard error of a normal distribution.

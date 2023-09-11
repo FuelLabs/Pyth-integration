@@ -1,9 +1,9 @@
 library;
 
-use ::data_structures::{price::{Price, PriceFeed, PriceFeedId}, wormhole_light::WormholeVM};
+use ::data_structures::{price::{PriceFeed, PriceFeedId}, wormhole_light::{WormholeVM, GuardianSet}};
 use ::errors::{PythError};
 
-use std::{bytes::Bytes, constants::ZERO_B256};
+use std::bytes::Bytes;
 
 pub struct AccumulatorUpdate {
     data: Bytes,
