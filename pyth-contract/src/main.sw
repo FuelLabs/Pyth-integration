@@ -47,10 +47,8 @@ use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use src_5::Ownership;
 use ownership::*;
 
-
 storage {
-    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(DEPLOYER))),
-
+    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
     /// PYTH STATE ///
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
@@ -65,7 +63,6 @@ storage {
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
     valid_time_period_seconds: u64 = 0,
-
     ///  WORMHOLE STATE ///
     // Mapping of consumed governance actions
     wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
@@ -139,7 +136,7 @@ impl PythCore for Contract {
 
                         i_2 += 1;
                     }
-                    require(offset == encoded.len, PythError::InvalidUpdateData);
+                    require(offset == encoded.len, PythError::InvalidUpdateDataLength);
                 },
                 UpdateType::BatchAttestation(batch_attestation_update) => {
                     let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index(), batch_attestation_update.data, storage.wormhole_guardian_sets, storage.is_valid_data_source);
@@ -217,7 +214,7 @@ impl PythCore for Contract {
         publish_times: Vec<u64>,
         update_data: Vec<Bytes>,
     ) {
-        require(price_feed_ids.len == publish_times.len, PythError::InvalidArgument);
+        require(price_feed_ids.len == publish_times.len, PythError::LengthOfPriceFeedIdsAndPublishTimesMustMatch);
 
         let mut index = 0;
         let price_feed_ids_length = price_feed_ids.len;

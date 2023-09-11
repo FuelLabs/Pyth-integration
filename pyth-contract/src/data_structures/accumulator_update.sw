@@ -41,18 +41,18 @@ impl AccumulatorUpdate {
     pub fn verify(self) -> u64 {
         // skip magic as already checked when this is called
         let major_version = self.data.get(4);
-        require(major_version.is_some() && major_version.unwrap() == MAJOR_VERSION, PythError::InvalidUpdateData);
+        require(major_version.is_some() && major_version.unwrap() == MAJOR_VERSION, PythError::InvalidMajorVersion);
 
         let minor_version = self.data.get(5);
-        require(minor_version.is_some() && minor_version.unwrap() >= MINIMUM_ALLOWED_MINOR_VERSION, PythError::InvalidUpdateData);
+        require(minor_version.is_some() && minor_version.unwrap() >= MINIMUM_ALLOWED_MINOR_VERSION, PythError::InvalidMinorVersion);
 
         let trailing_header_size = self.data.get(6);
-        require(trailing_header_size.is_some(), PythError::InvalidUpdateData);
+        require(trailing_header_size.is_some(), PythError::InvalidHeaderSize);
 
         // skip trailing headers and update type
         let offset = 8 + trailing_header_size.unwrap().as_u64();
 
-        require(self.data.len >= offset, PythError::InvalidUpdateData);
+        require(self.data.len >= offset, PythError::InvalidUpdateDataLength);
 
         offset
     }
@@ -99,7 +99,7 @@ impl AccumulatorUpdate {
         let (digest, _) = slice.split_at(20);
         payload_offset += 20;
 
-        require(payload_offset <= encoded_payload.len, PythError::InvalidUpdateData);
+        require(payload_offset <= encoded_payload.len, PythError::InvalidPayloadLength);
 
         let number_of_updates = encoded_slice.get(offset);
         require(number_of_updates.is_some(), PythError::NumberOfUpdatesIrretrievable);
@@ -143,7 +143,7 @@ impl AccumulatorUpdate {
             i += 1;
         }
 
-        require(offset == encoded_data.len, PythError::InvalidUpdateData);
+        require(offset == encoded_data.len, PythError::InvalidUpdateDataLength);
         (number_of_updates, updated_price_feeds)
     }
 }

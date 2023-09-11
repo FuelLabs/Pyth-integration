@@ -65,11 +65,11 @@ impl GuardianSetUpgrade {
         let (_, slice) = encoded_upgrade.split_at(index);
         let (module, _) = slice.split_at(32);
         let module: b256 = module.into();
-        require(module == UPGRADE_MODULE, "invalid Module");
+        require(module == UPGRADE_MODULE, WormholeError::InvalidModule);
         index += 32;
 
         let action = encoded_upgrade.get(index).unwrap();
-        require(action == 2, WormholeError::InvalidGuardianSetUpgrade);
+        require(action == 2, WormholeError::InvalidGovernanceAction);
         index += 1;
 
         let chain = u16::from_be_bytes([
@@ -109,7 +109,7 @@ impl GuardianSetUpgrade {
         }
 
         require(new_guardian_set.keys.len() > 0, WormholeError::NewGuardianSetIsEmpty);
-        require(encoded_upgrade.len == index, WormholeError::InvalidGuardianSetUpgrade);
+        require(encoded_upgrade.len == index, WormholeError::InvalidGuardianSetUpgradeLength);
 
         GuardianSetUpgrade::new(action, chain, module, new_guardian_set, new_guardian_set_index)
     }
@@ -195,7 +195,7 @@ impl GuardianSignature {
         }
 
         let recovered_signer = ec_recover_evm_address(self.compact(), hash);
-        require(recovered_signer.is_ok() && recovered_signer.unwrap().value == guardian_set_key, WormholeError::VMSignatureInvalid);
+        require(recovered_signer.is_ok() && recovered_signer.unwrap().value == guardian_set_key, WormholeError::SignatureInvalid);
     }
 }
 
@@ -266,7 +266,7 @@ impl WormholeVM {
         let mut index = 0;
 
         let version = encoded_vm.get(index);
-        require(version.is_some() && version.unwrap() == 1, WormholeError::VmVersionIncompatible);
+        require(version.is_some() && version.unwrap() == 1, WormholeError::VMVersionIncompatible);
         index += 1;
 
         let (_, slice) = encoded_vm.split_at(index);
@@ -282,7 +282,7 @@ impl WormholeVM {
         let guardian_set = wormhole_guardian_sets.get(guardian_set_index).try_read();
         require(guardian_set.is_some(), WormholeError::GuardianSetNotFound);
         let guardian_set = guardian_set.unwrap();
-        require(guardian_set.keys.len() > 0, WormholeError::InvalidGuardianSet);
+        require(guardian_set.keys.len() > 0, WormholeError::InvalidGuardianSetKeysLength);
         require(guardian_set_index == current_guardian_set_index && guardian_set.expiration_time > timestamp(), WormholeError::InvalidGuardianSet);
 
         let signers_length = encoded_vm.get(index);
@@ -382,7 +382,7 @@ impl WormholeVM {
         index += 8;
 
         let consistency_level = encoded_vm.get(index);
-        require(consistency_level.is_some(), WormholeError::VMConsistencyLevelIrretrievable);
+        require(consistency_level.is_some(), WormholeError::ConsistencyLevelIrretrievable);
         index += 1;
 
         require(index <= encoded_vm.len, WormholeError::InvalidPayloadLength);

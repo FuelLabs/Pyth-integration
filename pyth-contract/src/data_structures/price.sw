@@ -174,7 +174,7 @@ impl PriceFeed {
         ]);
         offset += 8;
 
-        require(offset <= encoded_price_feed.len, PythError::InvalidUpdateData);
+        require(offset <= encoded_price_feed.len, PythError::InvalidPriceFeedDataLength);
 
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }
@@ -314,7 +314,7 @@ impl PriceFeed {
             attestation_index += 8;
         }
 
-        require((attestation_index - index) <= attestation_size.as_u64(), PythError::InvalidUpdateData);
+        require((attestation_index - index) <= attestation_size.as_u64(), PythError::InvalidAttestationSize);
 
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }

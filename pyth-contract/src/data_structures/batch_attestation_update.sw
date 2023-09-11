@@ -77,14 +77,14 @@ pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64
         encoded_payload.get(index + 2).unwrap(),
         encoded_payload.get(index + 3).unwrap(),
     ]);
-    require(magic == BATCH_MAGIC, PythError::InvalidUpdateData);
+    require(magic == BATCH_MAGIC, PythError::InvalidMagic);
     index += 4;
 
     let major_version = u16::from_be_bytes([
         encoded_payload.get(index).unwrap(),
         encoded_payload.get(index + 1).unwrap(),
     ]);
-    require(major_version == 3, PythError::InvalidUpdateData);
+    require(major_version == 3, PythError::InvalidMajorVersion);
     // addtionally skip minor_version(2 bytes) as unused
     index += 4;
 
@@ -109,7 +109,7 @@ pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64
     let payload_id = encoded_payload.get(index).unwrap();
 
     // Payload ID of 2 required for batch header
-    require(payload_id == 2, PythError::InvalidUpdateData);
+    require(payload_id == 2, PythError::InvalidPayloadId);
 
     // Skip remaining unknown header bytes
     index += header_size.as_u64();
@@ -126,7 +126,7 @@ pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64
     ]);
     index += 2;
 
-    require(encoded_payload.len == index + (attestation_size * number_of_attestations).as_u64(), PythError::InvalidUpdateData);
+    require(encoded_payload.len == index + (attestation_size * number_of_attestations).as_u64(), PythError::InvalidPayloadLength);
 
     return (index, number_of_attestations, attestation_size);
 }
