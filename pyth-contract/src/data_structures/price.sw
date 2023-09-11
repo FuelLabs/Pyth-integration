@@ -1,10 +1,11 @@
 library;
 
-use ::data_structures::{wormhole_light::{WormholeVM, GuardianSet}};
-use ::errors::{PythError};
-use ::pyth_merkle_proof::validate_proof;
-
 use std::bytes::Bytes;
+
+use ::errors::{PythError};
+use ::utils::absolute_of_exponent;
+use ::pyth_merkle_proof::validate_proof;
+use ::data_structures::{wormhole_light::{GuardianSet, WormholeVM}};
 
 // A price with a degree of uncertainty, represented as a price +- a confidence interval.
 //
@@ -47,10 +48,7 @@ impl Price {
 pub type PriceFeedId = b256;
 
 impl PriceFeedId {
-    pub fn is_target(
-        self,
-        target_price_feed_ids: Vec<PriceFeedId>,
-    ) -> bool {
+    pub fn is_target(self, target_price_feed_ids: Vec<PriceFeedId>) -> bool {
         let mut i = 0;
         while i < target_price_feed_ids.len {
             if target_price_feed_ids.get(i).unwrap() == self {
@@ -62,10 +60,7 @@ impl PriceFeedId {
         false
     }
 
-    pub fn is_contained_within(
-        self,
-        output_price_feeds: Vec<PriceFeed>,
-    ) -> bool {
+    pub fn is_contained_within(self, output_price_feeds: Vec<PriceFeed>) -> bool {
         let mut i = 0;
         while i < output_price_feeds.len {
             if output_price_feeds.get(i).unwrap().id == self {
@@ -99,7 +94,7 @@ impl PriceFeed {
 }
 
 impl PriceFeed {
-    fn parse_message(encoded_price_feed: Bytes) -> self { 
+    pub fn parse_message(encoded_price_feed: Bytes) -> self {
         let mut offset = 1u64;
 
         let (_, slice) = encoded_price_feed.split_at(offset);
@@ -184,11 +179,7 @@ impl PriceFeed {
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }
 
-    pub fn parse_attestation(
-        attestation_size: u16,
-        encoded_payload: Bytes,
-        index: u64,
-    ) -> self {
+    pub fn parse_attestation(attestation_size: u16, encoded_payload: Bytes, index: u64) -> self {
         // Skip product id (32 bytes) as unused
         let mut attestation_index = index + 32;
 
@@ -327,7 +318,6 @@ impl PriceFeed {
 
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }
-
 }
 
 impl PriceFeed {

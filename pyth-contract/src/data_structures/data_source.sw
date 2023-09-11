@@ -12,4 +12,15 @@ impl DataSource {
             emitter_address,
         }
     }
+
+    #[storage(read)]
+    pub fn is_valid(
+        self,
+        is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
+) -> bool {
+        match is_valid_data_source.get(self).try_read() {
+            Some(bool) => bool,
+            None => false,
+        }
+    }
 }

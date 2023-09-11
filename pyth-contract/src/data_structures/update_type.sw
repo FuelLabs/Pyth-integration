@@ -1,12 +1,15 @@
 library;
 
 use std::bytes::Bytes;
-use ::data_structures::{accumulator_update::AccumulatorUpdate, batch_attestation_update::BatchAttestationUpdate};
+use ::data_structures::{
+    accumulator_update::AccumulatorUpdate,
+    batch_attestation_update::BatchAttestationUpdate,
+};
 
 const ACCUMULATOR_MAGIC: u32 = 0x504e4155;
 
 pub enum UpdateType {
-    Accumulator:AccumulatorUpdate, 
+    Accumulator: AccumulatorUpdate,
     BatchAttestation: BatchAttestationUpdate,
 }
 
@@ -31,5 +34,4 @@ pub fn accumulator_magic_bytes() -> Bytes {
     accumulator_magic_bytes.push(accumulator_magic_array[3]);
 
     accumulator_magic_bytes
-
 }

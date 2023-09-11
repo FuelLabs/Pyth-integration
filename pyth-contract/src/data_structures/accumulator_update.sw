@@ -1,7 +1,17 @@
 library;
 
-use ::data_structures::{price::{PriceFeed, PriceFeedId}, wormhole_light::{WormholeVM, GuardianSet}};
 use ::errors::{PythError};
+use ::data_structures::{
+    data_source::DataSource,
+    price::{
+        PriceFeed,
+        PriceFeedId,
+    },
+    wormhole_light::{
+        GuardianSet,
+        WormholeVM,
+    },
+};
 
 use std::bytes::Bytes;
 
@@ -50,9 +60,12 @@ impl AccumulatorUpdate {
 
 impl AccumulatorUpdate {
     #[storage(read)]
-    fn verify_and_parse(
-        self, wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>
-    ) -> (u64, Bytes, u64, Bytes) {
+    pub fn verify_and_parse(
+        self,
+        current_guardian_set_index: u32,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
+) -> (u64, Bytes, u64, Bytes) {
         let encoded_offset = self.verify();
 
         let (_, slice) = self.data.split_at(encoded_offset);
@@ -68,7 +81,7 @@ impl AccumulatorUpdate {
 
         let (_, slice) = encoded_slice.split_at(offset);
         let (encoded_vm, _) = slice.split_at(wormhole_proof_size);
-        let vm = WormholeVM::parse_and_verify_pyth_vm(encoded_vm, wormhole_guardian_sets);
+        let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index, encoded_vm, wormhole_guardian_sets, is_valid_data_source);
         offset += wormhole_proof_size;
 
         let encoded_payload = vm.payload;
@@ -103,9 +116,13 @@ impl AccumulatorUpdate {
 impl AccumulatorUpdate {
     #[storage(read, write)]
     pub fn update_price_feeds(
-        self, wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>, latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>
-    ) -> (u64, Vec<PriceFeed>) {
-        let (mut offset, digest, number_of_updates, encoded_data) = self.verify_and_parse(wormhole_guardian_sets);
+        self,
+        current_guardian_set_index: u32,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
+        is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
+) -> (u64, Vec<PriceFeed>) {
+        let (mut offset, digest, number_of_updates, encoded_data) = self.verify_and_parse(current_guardian_set_index, wormhole_guardian_sets, is_valid_data_source);
 
         let mut updated_price_feeds = Vec::new();
         let mut i = 0;

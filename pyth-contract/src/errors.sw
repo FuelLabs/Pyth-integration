@@ -44,4 +44,5 @@ pub enum WormholeError {
     InvalidGovernanceContract: (),
     GovernanceActionAlreadyConsumed: (),
     NewGuardianSetIndexIsInvalid: (),
+    InvalidUpdateDataSource: (),
 }

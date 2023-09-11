@@ -1,8 +1,18 @@
 library;
 
-use ::data_structures::{price::{PriceFeed, PriceFeedId}, wormhole_light::{WormholeVM, GuardianSet}};
 use std::bytes::Bytes;
 use ::errors::{PythError};
+use ::data_structures::{
+    data_source::DataSource,
+    price::{
+        PriceFeed,
+        PriceFeedId,
+    },
+    wormhole_light::{
+        GuardianSet,
+        WormholeVM,
+    },
+};
 
 const BATCH_MAGIC: u32 = 0x50325748;
 
@@ -16,8 +26,14 @@ impl BatchAttestationUpdate {
     }
 
     #[storage(read, write)]
-    pub fn update_price_feeds(self, wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>, latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>) -> Vec<PriceFeed> {
-        let vm = WormholeVM::parse_and_verify_pyth_vm(self.data, wormhole_guardian_sets);
+    pub fn update_price_feeds(
+        self,
+        current_guardian_set_index: u32,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
+        is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
+) -> Vec<PriceFeed> {
+        let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index, self.data, wormhole_guardian_sets, is_valid_data_source);
 
         let (
             mut attestation_index,
@@ -48,7 +64,7 @@ impl BatchAttestationUpdate {
         }
 
         updated_price_feeds
-        } 
+    }
 }
 
 pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64, u16, u16) {

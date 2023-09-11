@@ -1,7 +1,19 @@
 library;
 
-use std::{bytes::Bytes, constants::ZERO_B256, storage::storage_vec::*, vm::evm::ecr::ec_recover_evm_address};
+use std::{
+    b512::B512,
+    block::timestamp,
+    bytes::Bytes,
+    constants::ZERO_B256,
+    hash::{
+        keccak256,
+        sha256,
+    },
+    storage::storage_vec::*,
+    vm::evm::ecr::ec_recover_evm_address,
+};
 use ::errors::{WormholeError};
+use ::data_structures::data_source::DataSource;
 
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
 
@@ -47,10 +59,7 @@ impl GuardianSetUpgrade {
 
 impl GuardianSetUpgrade {
     #[storage(read, write)]
-    pub fn parse_encoded_upgrade(
-        current_guardian_set_index: u32,
-        encoded_upgrade: Bytes,
-    ) -> self {
+    pub fn parse_encoded_upgrade(current_guardian_set_index: u32, encoded_upgrade: Bytes) -> self {
         let mut index = 0;
 
         let (_, slice) = encoded_upgrade.split_at(index);
@@ -130,7 +139,7 @@ impl GuardianSignature {
     }
 
     // eip-2098: Compact Signature Representation
-    fn compact(self) -> B512 {
+    pub fn compact(self) -> B512 {
         let y_parity = b256::from_be_bytes([
             0u8,
             0u8,
@@ -224,7 +233,7 @@ impl WormholeVM {
         version: u8,
         guardian_set_index: u32,
         governance_action_hash: b256,
-        timestamp: u32,
+        timestamp_: u32,
         nonce: u32,
         emitter_chain_id: u16,
         emitter_address: b256,
@@ -236,7 +245,7 @@ impl WormholeVM {
             version,
             guardian_set_index,
             governance_action_hash,
-            timestamp,
+            timestamp: timestamp_,
             nonce,
             emitter_chain_id,
             emitter_address,
@@ -249,7 +258,11 @@ impl WormholeVM {
 
 impl WormholeVM {
     #[storage(read)]
-    fn parse_and_verify_wormhole_vm(encoded_vm: Bytes, wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>) -> self { 
+    pub fn parse_and_verify_wormhole_vm(
+        current_guardian_set_index: u32,
+        encoded_vm: Bytes,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+    ) -> self {
         let mut index = 0;
 
         let version = encoded_vm.get(index);
@@ -270,7 +283,7 @@ impl WormholeVM {
         require(guardian_set.is_some(), WormholeError::GuardianSetNotFound);
         let guardian_set = guardian_set.unwrap();
         require(guardian_set.keys.len() > 0, WormholeError::InvalidGuardianSet);
-        require(guardian_set_index == current_guardian_set_index() && guardian_set.expiration_time > timestamp(), WormholeError::InvalidGuardianSet);
+        require(guardian_set_index == current_guardian_set_index && guardian_set.expiration_time > timestamp(), WormholeError::InvalidGuardianSet);
 
         let signers_length = encoded_vm.get(index);
         require(signers_length.is_some(), WormholeError::SignersLengthIrretrievable);
@@ -378,15 +391,19 @@ impl WormholeVM {
 
         WormholeVM::new(version.unwrap(), guardian_set_index, hash, _timestamp, nonce, emitter_chain_id, emitter_address, sequence, consistency_level.unwrap(), payload)
     }
-
 }
 
 impl WormholeVM {
-     #[storage(read)] 
-    fn parse_and_verify_pyth_vm(encoded_vm: Bytes, wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>) -> self {
-        let vm = WormholeVM::parse_and_verify_wormhole_vm(encoded_vm, wormhole_guardian_sets);
+    #[storage(read)]
+    pub fn parse_and_verify_pyth_vm(
+        current_guardian_set_index: u32,
+        encoded_vm: Bytes,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
+    ) -> self {
+        let vm = WormholeVM::parse_and_verify_wormhole_vm(current_guardian_set_index, encoded_vm, wormhole_guardian_sets);
 
-        require(valid_data_source(DataSource::new(vm.emitter_chain_id, vm.emitter_address)), PythError::InvalidUpdateDataSource);
+        require(DataSource::new(vm.emitter_chain_id, vm.emitter_address).is_valid(is_valid_data_source), WormholeError::InvalidUpdateDataSource);
 
         vm
     }

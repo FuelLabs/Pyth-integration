@@ -13,6 +13,9 @@ pub fn absolute_of_exponent(exponent: u32) -> u32 {
 }
 
 #[storage(read)]
-pub fn total_fee(total_number_of_updates: u64, single_update_fee: StorageKey<u64>) -> u64 {
+pub fn total_fee(
+    total_number_of_updates: u64,
+    single_update_fee: StorageKey<u64>,
+) -> u64 {
     total_number_of_updates * single_update_fee.read()
 }

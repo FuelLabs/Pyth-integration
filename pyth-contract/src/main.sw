@@ -1,29 +1,11 @@
 contract;
 
-mod data_structures;
 mod errors;
 mod events;
-mod interface;
 mod utils;
 mod pyth_merkle_proof;
-
-use ::data_structures::{
-    data_source::DataSource,
-    price::{
-        Price,
-        PriceFeed,
-        PriceFeedId,
-    },
-    wormhole_light::{
-        GuardianSet,
-        GuardianSignature,
-        WormholeProvider,
-        WormholeVM,
-    },
-};
-use ::errors::{PythError, WormholeError};
-use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
-use ::utils::{difference};
+mod data_structures;
+mod interface;
 
 use std::{
     block::timestamp,
@@ -40,6 +22,28 @@ use std::{
     },
     u256::U256,
 };
+
+use ::errors::{PythError, WormholeError};
+use ::utils::{difference, total_fee};
+use ::data_structures::{
+    batch_attestation_update::parse_and_verify_batch_attestation_header,
+    data_source::DataSource,
+    price::{
+        Price,
+        PriceFeed,
+        PriceFeedId,
+    },
+    update_type::UpdateType,
+    wormhole_light::{
+        GuardianSet,
+        GuardianSetUpgrade,
+        GuardianSignature,
+        WormholeProvider,
+        WormholeVM,
+    },
+};
+use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
+
 use src_5::Ownership;
 use ownership::*;
 
@@ -112,27 +116,23 @@ impl PythCore for Contract {
         while i < update_data.len {
             let data = update_data.get(i).unwrap();
 
-            match update_type(data) {
+            match UpdateType::determine_type(data) {
                 UpdateType::Accumulator(accumulator_update) => {
-
-                    let (mut offset, digest, number_of_updates, encoded) = verify_and_parse(accumulator_update, storage.wormhole_guardian_sets);
-
+                    let (mut offset, digest, number_of_updates, encoded) = accumulator_update.verify_and_parse(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.is_valid_data_source);
                     let mut i_2 = 0;
                     while i_2 < number_of_updates {
-                        let (new_offset, price_feed) = PriceFeed::extract_from_merkle_proof(digest,encoded,offset);
+                        let (new_offset, price_feed) = PriceFeed::extract_from_merkle_proof(digest, encoded, offset);
 
                         offset = new_offset;
 
-                        if price_feed.id.is_target(target_price_feed_ids) == false
-                        {
+                        if price_feed.id.is_target(target_price_feed_ids) == false {
                             continue;
                         }
 
                         if price_feed.price.publish_time >= min_publish_time && price_feed.price.publish_time <= max_publish_time {
                             // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue as we only want 1 
                             // output PriceFeed per target ID
-                            if price_feed.id.is_contained_within(output_price_feeds)
-                            {
+                            if price_feed.id.is_contained_within(output_price_feeds) {
                                 continue;
                             }
 
@@ -144,7 +144,7 @@ impl PythCore for Contract {
                     require(offset == encoded.len, PythError::InvalidUpdateData);
                 },
                 UpdateType::BatchAttestation(batch_attestation_update) => {
-                    let vm = WormholeVM::parse_and_verify_pyth_vm(batch_attestation_update.data, storage.wormhole_guardian_sets);
+                    let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index(), batch_attestation_update.data, storage.wormhole_guardian_sets, storage.is_valid_data_source);
 
                     let (
                         mut attestation_index,
@@ -158,8 +158,7 @@ impl PythCore for Contract {
                         let (price_feed_id, _) = slice.split_at(32);
                         let price_feed_id: PriceFeedId = price_feed_id.into();
 
-                        if price_feed_id.is_target(target_price_feed_ids) == false
-                        {
+                        if price_feed_id.is_target(target_price_feed_ids) == false {
                             continue;
                         }
 
@@ -168,8 +167,7 @@ impl PythCore for Contract {
                         if price_feed.price.publish_time >= min_publish_time && price_feed.price.publish_time <= max_publish_time {
                             // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue; 
                             // as we only want 1 output PriceFeed per target ID
-                            if price_feed.id.is_contained_within(output_price_feeds)
-                            {
+                            if price_feed.id.is_contained_within(output_price_feeds) {
                                 continue;
                             }
 
@@ -286,7 +284,7 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
     while index < update_data_length {
         let data = update_data.get(index).unwrap();
 
-        match update_type(data) {
+        match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
                 let proof_size_offset = accumulator_update.verify();
 
@@ -314,15 +312,15 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
     while index < update_data_length {
         let data = update_data.get(index).unwrap();
 
-        match update_type(data) {
+        match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
                 // updated_price_feeds is for use in logging
-                let (number_of_updates, _updated_price_feeds) = accumulator_update.update_price_feeds(storage.wormhole_guardian_sets, storage.latest_price_feed);
+                let (number_of_updates, _updated_price_feeds) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
                 // updated_price_feeds is for use in logging
-                let _updated_price_feeds = batch_attestation_update.update_price_feeds(storage.wormhole_guardian_sets, storage.latest_price_feed);
+                let _updated_price_feeds = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
 
                 total_number_of_updates += 1;
             },
@@ -401,10 +399,7 @@ impl PythInfo for Contract {
 
     #[storage(read)]
     fn valid_data_source(data_source: DataSource) -> bool {
-        match storage.is_valid_data_source.get(data_source).try_read() {
-            Some(bool) => bool,
-            None => false,
-        }
+        data_source.is_valid(storage.is_valid_data_source)
     }
 }
 
@@ -467,7 +462,7 @@ fn governance_action_is_consumed(governance_action_hash: b256) -> bool {
 
 #[storage(read, write)]
 fn submit_new_guardian_set(encoded_vm: Bytes) {
-    let vm = WormholeVM::parse_and_verify_wormhole_vm(encoded_vm, storage.wormhole_guardian_sets);
+    let vm = WormholeVM::parse_and_verify_wormhole_vm(current_guardian_set_index(), encoded_vm, storage.wormhole_guardian_sets);
     require(vm.guardian_set_index == current_guardian_set_index(), WormholeError::NotSignedByCurrentGuardianSet);
     let current_wormhole_provider = current_wormhole_provider();
     require(vm.emitter_chain_id == current_wormhole_provider.governance_chain_id, WormholeError::InvalidGovernanceChain);
