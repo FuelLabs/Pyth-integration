@@ -32,7 +32,7 @@ use ::pyth_accumulator::{
     AccumulatorUpdate,
     extract_price_feed_from_merkle_proof,
 };
-use ::pyth_batch::{parse_batch_attestation_header, parse_single_attestation_from_batch};
+use ::pyth_batch::{parse_and_verify_batch_attestation_header, parse_single_attestation};
 use ::utils::{contains_price_feed_id, difference, is_target_price_feed_id};
 use ::update_type::{update_type, UpdateType};
 use ::wormhole_light::*;
@@ -161,7 +161,7 @@ impl PythCore for Contract {
                         mut attestation_index,
                         number_of_attestations,
                         attestation_size,
-                    ) = parse_batch_attestation_header(vm.payload);
+                    ) = parse_and_verify_batch_attestation_header(vm.payload);
 
                     let mut i_2: u16 = 0;
                     while i_2 < number_of_attestations {
@@ -174,7 +174,7 @@ impl PythCore for Contract {
                             continue;
                         }
 
-                        let price_feed = parse_single_attestation_from_batch(attestation_size, vm.payload, attestation_index);
+                        let price_feed = parse_single_attestation(attestation_size, vm.payload, attestation_index);
 
                         if price_feed.price.publish_time >= min_publish_time && price_feed.price.publish_time <= max_publish_time {
                             // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue; 
@@ -237,7 +237,7 @@ impl PythCore for Contract {
         let mut index = 0;
         let price_feed_ids_length = price_feed_ids.len;
         while index < price_feed_ids_length {
-            if latest_price_feed_publish_time(price_feed_ids.get(index).unwrap()) < publish_times.get(index).unwrap()
+            if latest_publish_time(price_feed_ids.get(index).unwrap()) < publish_times.get(index).unwrap()
             {
                 update_price_feeds(update_data);
                 return;
@@ -385,22 +385,25 @@ impl PythInit for Contract {
 
 impl PythInfo for Contract {
     #[storage(read)]
-    fn current_valid_data_sources() -> StorageVec<DataSource> {
+    fn valid_data_sources() -> StorageVec<DataSource> {
         storage.valid_data_sources.read()
     }
 
     #[storage(read)]
-    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
-        latest_price_feed_publish_time(price_feed_id)
+    fn latest_publish_time(price_feed_id: PriceFeedId) -> u64 {
+        latest_publish_time(price_feed_id)
     }
 
     #[storage(read)]
     fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
-        latest_price_feed_publish_time(price_feed_id) != 0
+        match storage.latest_price_feed.get(price_feed_id).try_read() {
+            Some(_) => true,
+            None => false,
+        }
     }
 
     #[storage(read)]
-    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
+    fn price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
         let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
         require(price_feed.is_some(), PythError::PriceFeedNotFound);
         price_feed.unwrap()
@@ -417,7 +420,7 @@ impl PythInfo for Contract {
 
 /// PythInfo Private Functions ///
 #[storage(read)]
-fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64 {
+fn latest_publish_time(price_feed_id: PriceFeedId) -> u64 {
     match storage.latest_price_feed.get(price_feed_id).try_read() {
         Some(price_feed) => price_feed.price.publish_time,
         None => 0,
@@ -476,8 +479,9 @@ fn governance_action_is_consumed(governance_action_hash: b256) -> bool {
 fn submit_new_guardian_set(encoded_vm: Bytes) {
     let vm = parse_and_verify_wormhole_vm(encoded_vm);
     require(vm.guardian_set_index == current_guardian_set_index(), WormholeError::NotSignedByCurrentGuardianSet);
-    require(vm.emitter_chain_id == current_wormhole_provider().governance_chain_id, WormholeError::InvalidGovernanceChain);
-    require(vm.emitter_address == current_wormhole_provider().governance_contract, WormholeError::InvalidGovernanceContract);
+    let current_wormhole_provider = current_wormhole_provider();
+    require(vm.emitter_chain_id == current_wormhole_provider.governance_chain_id, WormholeError::InvalidGovernanceChain);
+    require(vm.emitter_address == current_wormhole_provider.governance_contract, WormholeError::InvalidGovernanceContract);
     require(governance_action_is_consumed(vm.governance_action_hash) == false, WormholeError::GovernanceActionAlreadyConsumed);
 
     let current_guardian_set_index = current_guardian_set_index();
@@ -504,117 +508,35 @@ fn total_fee(total_number_of_updates: u64) -> u64 {
 }
 
 /// Pyth-accumulator Private Functions ///
-#[storage(read)]
-fn parse_and_verify_pyth_vm(encoded_vm: Bytes) -> WormholeVM {
+#[storage(read)] 
+fn parse_and_verify_pyth_vm(encoded_vm: Bytes) -> WormholeVM { //impl on WormholeVM
     let vm = parse_and_verify_wormhole_vm(encoded_vm);
 
-    //TODO uncomment when Hash is included in release
-    // require(valid_data_source(DataSource::new(vm.emitter_chain_id, vm.emitter_address)), PythError::InvalidUpdateDataSource);
+    require(valid_data_source(DataSource::new(vm.emitter_chain_id, vm.emitter_address)), PythError::InvalidUpdateDataSource);
 
     vm
 }
 
-#[storage(read)]
-fn parse_accumulator_update(
-    accumulator_update: Bytes,
-    encoded_offset: u64,
-) -> (u64, Bytes, u64, Bytes) {
-    let (_, slice) = accumulator_update.split_at(encoded_offset);
-    let (encoded_slice, _) = slice.split_at(accumulator_update.len - encoded_offset);
-
-    let mut offset = 0;
-
-    //two bytes starting at offset
-    let womrhole_proof_size = u16::from_be_bytes([
-        encoded_slice.get(offset).unwrap(),
-        encoded_slice.get(offset + 1).unwrap(),
-    ]).as_u64();
-    offset += 2;
-
-    let (_, slice) = encoded_slice.split_at(offset);
-    let (encoded_vm, _) = slice.split_at(womrhole_proof_size);
-    let vm = parse_and_verify_pyth_vm(encoded_vm);
-    offset += womrhole_proof_size;
-
-    let encoded_payload = vm.payload;
-
-    /*
-    Payload offset:
-    skip magic (4 bytes) as already checked when this is called
-    skip update_type as (1 byte) it can only be WormholeMerkle
-    skip slot (8 bytes) as unused
-    skip ring_size (4 bytes) as unused
-    */
-    let mut payload_offset = 17;
-
-    let (_, slice) = encoded_payload.split_at(payload_offset);
-    let (digest, _) = slice.split_at(20);
-    payload_offset += 20;
-
-    require(payload_offset <= encoded_payload.len, PythError::InvalidUpdateData);
-
-    let number_of_updates = encoded_slice.get(offset);
-    require(number_of_updates.is_some(), PythError::NumberOfUpdatesIrretrievable);
-    offset += 1;
-    (
-        offset,
-        digest,
-        number_of_updates.unwrap().as_u64(),
-        encoded_slice,
-    )
-}
-
-#[storage(read, write)]
-fn update_price_feeds_from_accumulator_update(
-    accumulator_update: AccumulatorUpdate,
-) -> (u64, Vec<PriceFeed>) {
-    let encoded_offset = accumulator_update.verify();
-
-    let (mut offset, digest, number_of_updates, encoded_data) = parse_accumulator_update(accumulator_update.data, encoded_offset);
-
-    let mut updated_price_feeds = Vec::new();
-    let mut i = 0;
-    while i < number_of_updates {
-        let (new_offset, price_feed) = extract_price_feed_from_merkle_proof(digest, encoded_data, offset);
-        offset = new_offset;
-
-        let latest_publish_time = match storage.latest_price_feed.get(price_feed.id).try_read() {
-            Some(price_feed) => price_feed.price.publish_time,
-            None => 0,
-        };
-
-        if price_feed.price.publish_time > latest_publish_time {
-            storage.latest_price_feed.insert(price_feed.id, price_feed);
-            updated_price_feeds.push(price_feed);
-        }
-
-        i += 1;
-    }
-
-    require(offset == encoded_data.len, PythError::InvalidUpdateData);
-    (number_of_updates, updated_price_feeds)
-}
-
 /// Pyth-batch-price Private Functions ///
 #[storage(read, write)]
-fn update_price_batch_from_vm(encoded_vm: Bytes) -> Vec<PriceFeed> {
+fn update_price_batch_from_vm(encoded_vm: Bytes) -> Vec<PriceFeed> { // impl on batch update
     let vm = parse_and_verify_pyth_vm(encoded_vm);
 
     parse_and_process_batch_price_attestation(vm)
 }
 
 #[storage(read, write)]
-fn parse_and_process_batch_price_attestation(vm: WormholeVM) -> Vec<PriceFeed> {
+fn parse_and_process_batch_price_attestation(vm: WormholeVM) -> Vec<PriceFeed> { //combine with update_price_batch_from_vm
     let (
         mut attestation_index,
         number_of_attestations,
         attestation_size,
-    ) = parse_batch_attestation_header(vm.payload);
+    ) = parse_and_verify_batch_attestation_header(vm.payload);
 
     let mut updated_price_feeds = Vec::new();
     let mut i: u16 = 0;
     while i < number_of_attestations {
-        let price_feed = parse_single_attestation_from_batch(attestation_size, vm.payload, attestation_index);
+        let price_feed = parse_single_attestation(attestation_size, vm.payload, attestation_index);
 
         // Respect specified attestation size for forward-compatability
         attestation_index += attestation_size.as_u64();
@@ -637,7 +559,7 @@ fn parse_and_process_batch_price_attestation(vm: WormholeVM) -> Vec<PriceFeed> {
 
 /// Wormhole light Private Functions ///
 #[storage(read)]
-fn parse_and_verify_wormhole_vm(encoded_vm: Bytes) -> WormholeVM {
+fn parse_and_verify_wormhole_vm(encoded_vm: Bytes) -> WormholeVM { // impl on WormholeVM
     let mut index = 0;
 
     let version = encoded_vm.get(index);

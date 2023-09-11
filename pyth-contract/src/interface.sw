@@ -253,10 +253,10 @@ abi PythInit {
 
 abi PythInfo {
     #[storage(read)]
-    fn current_valid_data_sources() -> StorageVec<DataSource>;
+    fn valid_data_sources() -> StorageVec<DataSource>;
 
     #[storage(read)]
-    fn latest_price_feed_publish_time(price_feed_id: PriceFeedId) -> u64;
+    fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
 
     /// @notice Returns true if a price feed with the given id exists.
     /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.
@@ -267,7 +267,7 @@ abi PythInfo {
     /// @dev Reverts if the price does not exist.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
     #[storage(read)]
-    fn query_price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
+    fn price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
 
     #[storage(read)]
     fn valid_data_source(data_source: DataSource) -> bool;

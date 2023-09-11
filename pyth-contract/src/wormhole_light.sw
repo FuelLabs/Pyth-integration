@@ -23,7 +23,7 @@ use std::{
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
 
 #[storage(read, write)]
-pub fn parse_guardian_set_upgrade(
+pub fn parse_guardian_set_upgrade( // impl for GuardianSetUpgrade
     current_guardian_set_index: u32,
     encoded_upgrade: Bytes,
 ) -> GuardianSetUpgrade {
@@ -82,6 +82,7 @@ pub fn parse_guardian_set_upgrade(
 }
 
 // Notes: impl here as difficulties were encountered using errors from within data_structures
+// moved to data structures
 impl GuardianSignature {
     pub fn new(guardian_index: u8, r: b256, s: b256, v: u8) -> self {
         GuardianSignature {
