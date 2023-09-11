@@ -8,6 +8,7 @@ pub enum PythError {
     InsufficientFee: (),
     InvalidArgument: (),
     InvalidAttestationSize: (),
+    InvalidDataSourcesLength: (),
     InvalidExponent: (),
     InvalidHeaderSize: (),
     InvalidMagic: (),

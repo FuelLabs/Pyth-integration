@@ -26,7 +26,7 @@ impl BatchAttestationUpdate {
     }
 
     #[storage(read, write)]
-    pub fn update_price_feeds(
+    pub fn update_price_feeds( //log; or return log-able-arg
         self,
         current_guardian_set_index: u32,
         wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,

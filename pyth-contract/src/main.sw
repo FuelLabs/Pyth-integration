@@ -1,10 +1,10 @@
 contract;
 
 mod errors;
-mod events;
 mod utils;
 mod pyth_merkle_proof;
 mod data_structures;
+mod events;
 mod interface;
 
 use std::{
@@ -42,6 +42,7 @@ use ::data_structures::{
         WormholeVM,
     },
 };
+use ::events::{ConstructedEvent, NewGuardianSetEvent};
 use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 
 use src_5::Ownership;
@@ -297,7 +298,7 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 }
 
 #[storage(read, write), payable]
-fn update_price_feeds(update_data: Vec<Bytes>) {
+fn update_price_feeds(update_data: Vec<Bytes>) { //log
     require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePaidInTheBaseAsset);
 
     let mut total_number_of_updates = 0;
@@ -346,6 +347,8 @@ impl PythInit for Contract {
     ) {
         storage.deployer.only_owner();
 
+        require(data_sources.len > 0, PythError::InvalidDataSourcesLength);
+
         let mut i = 0;
         while i < data_sources.len {
             let data_source = data_sources.get(i).unwrap();
@@ -363,6 +366,13 @@ impl PythInit for Contract {
         storage.wormhole_provider.write(wormhole_provider);
 
         storage.deployer.renounce_ownership();
+
+        log(ConstructedEvent {
+            single_update_fee,
+            valid_data_sources: data_sources,
+            valid_time_period_seconds,
+            wormhole_provider,
+        })
     }
 }
 
@@ -479,4 +489,9 @@ fn submit_new_guardian_set(encoded_vm: Bytes) {
 
     storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
     storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
+
+    log(NewGuardianSetEvent {
+        governance_action_hash: vm.governance_action_hash,
+        new_guardian_set_index: upgrade.new_guardian_set_index,
+    })
 }
