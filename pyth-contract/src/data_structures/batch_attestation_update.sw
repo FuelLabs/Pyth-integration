@@ -26,13 +26,13 @@ impl BatchAttestationUpdate {
     }
 
     #[storage(read, write)]
-    pub fn update_price_feeds( //log; or return log-able-arg
+    pub fn update_price_feeds(
         self,
         current_guardian_set_index: u32,
         wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
         latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
-) -> Vec<PriceFeed> {
+) -> Vec<PriceFeedId> {
         let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index, self.data, wormhole_guardian_sets, is_valid_data_source);
 
         let (
@@ -41,7 +41,7 @@ impl BatchAttestationUpdate {
             attestation_size,
         ) = parse_and_verify_batch_attestation_header(vm.payload);
 
-        let mut updated_price_feeds = Vec::new();
+        let mut updated_ids = Vec::new();
 
         let mut i: u16 = 0;
         while i < number_of_attestations {
@@ -57,13 +57,13 @@ impl BatchAttestationUpdate {
 
             if price_feed.price.publish_time > latest_publish_time {
                 latest_price_feed.insert(price_feed.id, price_feed);
-                updated_price_feeds.push(price_feed);
+                updated_ids.push(price_feed.id);
             }
 
             i += 1;
         }
 
-        updated_price_feeds
+        updated_ids
     }
 }
 

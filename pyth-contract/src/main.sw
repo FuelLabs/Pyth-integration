@@ -298,26 +298,26 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 }
 
 #[storage(read, write), payable]
-fn update_price_feeds(update_data: Vec<Bytes>) { //log
+fn update_price_feeds(update_data: Vec<Bytes>) {
     require(msg_asset_id() == BASE_ASSET_ID, PythError::FeesCanOnlyBePaidInTheBaseAsset);
 
     let mut total_number_of_updates = 0;
 
+    let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new();
+
     let mut index = 0;
-    let update_data_length = update_data.len;
-    while index < update_data_length {
+    while index < update_data.len {
         let data = update_data.get(index).unwrap();
 
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                // updated_price_feeds is for use in logging
-                let (number_of_updates, _updated_price_feeds) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
+                let (number_of_updates, updated_ids) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
+                updated_price_feeds.append(updated_ids); //impl append
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
-                // updated_price_feeds is for use in logging
-                let _updated_price_feeds = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
-
+                let updated_ids = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
+                updated_price_feeds.append(updated_ids);
                 total_number_of_updates += 1;
             },
         }
@@ -328,7 +328,9 @@ fn update_price_feeds(update_data: Vec<Bytes>) { //log
     let required_fee = total_fee(total_number_of_updates, storage.single_update_fee);
     require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-    //log updated price feed event. A vec of updateeventtype (accumualator(updated_price_feeds), batch(vm.emitterChainId, vm.sequence,updated_price_feeds))
+    log(UpdatedPriceFeedsEvent {
+        updated_price_feeds,
+    })
 }
 
 #[storage(read)]

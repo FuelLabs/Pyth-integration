@@ -1,6 +1,5 @@
 library;
 
-/// Error log for a Pyth oracle revert.
 pub enum PythError {
     FeesCanOnlyBePaidInTheBaseAsset: (),
     GuardianSetNotFound: (),

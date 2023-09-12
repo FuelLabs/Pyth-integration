@@ -115,16 +115,17 @@ impl AccumulatorUpdate {
 
 impl AccumulatorUpdate {
     #[storage(read, write)]
-    pub fn update_price_feeds( //log; or return log-able-arg
+    pub fn update_price_feeds(
         self,
         current_guardian_set_index: u32,
         wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
         latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
-) -> (u64, Vec<PriceFeed>) {
+) -> (u64, Vec<PriceFeedId>) {
         let (mut offset, digest, number_of_updates, encoded_data) = self.verify_and_parse(current_guardian_set_index, wormhole_guardian_sets, is_valid_data_source);
 
-        let mut updated_price_feeds = Vec::new();
+        let mut updated_ids = Vec::new();
+
         let mut i = 0;
         while i < number_of_updates {
             let (new_offset, price_feed) = PriceFeed::extract_from_merkle_proof(digest, encoded_data, offset);
@@ -137,13 +138,13 @@ impl AccumulatorUpdate {
 
             if price_feed.price.publish_time > latest_publish_time {
                 latest_price_feed.insert(price_feed.id, price_feed);
-                updated_price_feeds.push(price_feed);
+                updated_ids.push(price_feed.id);
             }
 
             i += 1;
         }
 
         require(offset == encoded_data.len, PythError::InvalidUpdateDataLength);
-        (number_of_updates, updated_price_feeds)
+        (number_of_updates, updated_ids)
     }
 }
