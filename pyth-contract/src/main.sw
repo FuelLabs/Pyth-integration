@@ -42,7 +42,7 @@ use ::data_structures::{
         WormholeVM,
     },
 };
-use ::events::{ConstructedEvent, NewGuardianSetEvent};
+use ::events::{ConstructedEvent, NewGuardianSetEvent, UpdatedPriceFeedsEvent};
 use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 
 use src_5::Ownership;
@@ -217,16 +217,15 @@ impl PythCore for Contract {
     ) {
         require(price_feed_ids.len == publish_times.len, PythError::LengthOfPriceFeedIdsAndPublishTimesMustMatch);
 
-        let mut index = 0;
-        let price_feed_ids_length = price_feed_ids.len;
-        while index < price_feed_ids_length {
-            if latest_publish_time(price_feed_ids.get(index).unwrap()) < publish_times.get(index).unwrap()
+        let mut i = 0;
+        while i < price_feed_ids.len {
+            if latest_publish_time(price_feed_ids.get(i).unwrap()) < publish_times.get(i).unwrap()
             {
                 update_price_feeds(update_data);
                 return;
             }
 
-            index += 1;
+            i += 1;
         }
     }
 
@@ -274,11 +273,9 @@ fn price_unsafe(price_feed_id: PriceFeedId) -> Price {
 #[storage(read)]
 fn update_fee(update_data: Vec<Bytes>) -> u64 {
     let mut total_number_of_updates = 0;
-    let mut index = 0;
-    let update_data_length = update_data.len;
-
-    while index < update_data_length {
-        let data = update_data.get(index).unwrap();
+    let mut i = 0;
+    while i < update_data.len {
+        let data = update_data.get(i).unwrap();
 
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
@@ -291,7 +288,7 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
             },
         }
 
-        index += 1;
+        i += 1;
     }
 
     total_fee(total_number_of_updates, storage.single_update_fee)
@@ -303,34 +300,33 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
     let mut total_number_of_updates = 0;
 
-    let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new();
-
-    let mut index = 0;
-    while index < update_data.len {
-        let data = update_data.get(index).unwrap();
+    // let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new(); // TODO: required append for Vec
+    let mut i = 0;
+    while i < update_data.len {
+        let data = update_data.get(i).unwrap();
 
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                let (number_of_updates, updated_ids) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
-                updated_price_feeds.append(updated_ids); //impl append
+                let (number_of_updates, _updated_ids) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
+                // updated_price_feeds.append(updated_ids); // TODO: required append for Vec
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
-                let updated_ids = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
-                updated_price_feeds.append(updated_ids);
+                let _updated_ids = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
+                // updated_price_feeds.append(updated_ids); // TODO: required append for Vec
                 total_number_of_updates += 1;
             },
         }
 
-        index += 1;
+        i += 1;
     }
 
     let required_fee = total_fee(total_number_of_updates, storage.single_update_fee);
     require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-    log(UpdatedPriceFeedsEvent {
-        updated_price_feeds,
-    })
+    // log(UpdatedPriceFeedsEvent { // TODO: required append for Vec
+    //     updated_price_feeds,
+    // })
 }
 
 #[storage(read)]
