@@ -376,8 +376,20 @@ impl PythInit for Contract {
 
 impl PythInfo for Contract {
     #[storage(read)]
-    fn valid_data_sources() -> StorageVec<DataSource> {
-        storage.valid_data_sources.read()
+    fn valid_data_sources() -> Vec<DataSource> {
+        // TODO: replace with std-lib conversion when available
+        let length = storage.valid_data_sources.len();
+
+        let mut output = Vec::with_capacity(length);
+
+        let mut i = 0;
+        while i < length {
+            output.push(storage.valid_data_sources.get(i).unwrap().read());
+
+            i += 1;
+        }
+
+        output
     }
 
     #[storage(read)]

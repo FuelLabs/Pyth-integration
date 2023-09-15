@@ -253,7 +253,7 @@ abi PythInit {
 
 abi PythInfo {
     #[storage(read)]
-    fn valid_data_sources() -> StorageVec<DataSource>;
+    fn valid_data_sources() -> Vec<DataSource>;
 
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
