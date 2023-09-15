@@ -19,12 +19,40 @@ pub const UPGRADE_MODULE: b256 = 0x000000000000000000000000000000000000000000000
 
 pub struct GuardianSet {
     expiration_time: u64,
+    keys: Vec<b256>,
+}
+
+impl From<StorageGuardianSet> for GuardianSet {
+    fn from(stored: StorageGuardianSet) -> Self {
+        let expiration_time = expiration_time;
+
+        let length = stored.keys.len();
+        
+        let mut keys: Vec<b256> = Vec::with_capacity(length)
+
+        let mut i = 0;
+        while i < length {
+            keys.push(
+                stored.keys.get(i).unwrap().read()
+            );
+
+            i += 1;
+        }
+    }
+
+    fn into(self) -> StorageGuardianSet {}
+}
+
+
+
+pub struct StorageGuardianSet {
+    expiration_time: u64,
     keys: StorageKey<StorageVec<b256>>,
 }
 
-impl GuardianSet {
+impl StorageGuardianSet {
     pub fn new(expiration_time: u64, keys: StorageKey<StorageVec<b256>>) -> self {
-        GuardianSet {
+        StorageGuardianSet {
             expiration_time,
             keys,
         }
@@ -35,7 +63,7 @@ pub struct GuardianSetUpgrade {
     action: u8,
     chain: u16,
     module: b256,
-    new_guardian_set: GuardianSet,
+    new_guardian_set: StorageGuardianSet,
     new_guardian_set_index: u32,
 }
 
@@ -44,7 +72,7 @@ impl GuardianSetUpgrade {
         action: u8,
         chain: u16,
         module: b256,
-        new_guardian_set: GuardianSet,
+        new_guardian_set: StorageGuardianSet,
         new_guardian_set_index: u32,
     ) -> self {
         GuardianSetUpgrade {
@@ -90,7 +118,7 @@ impl GuardianSetUpgrade {
         let guardian_length = encoded_upgrade.get(index).unwrap();
         index += 1;
 
-        let mut new_guardian_set = GuardianSet::new(0, StorageKey {
+        let mut new_guardian_set = StorageGuardianSet::new(0, StorageKey {
             slot: sha256(("guardian_set_keys", new_guardian_set_index)),
             offset: 0,
             field_id: ZERO_B256,
@@ -261,7 +289,7 @@ impl WormholeVM {
     pub fn parse_and_verify_wormhole_vm(
         current_guardian_set_index: u32,
         encoded_vm: Bytes,
-        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, StorageGuardianSet>>,
     ) -> self {
         let mut index = 0;
 
@@ -398,7 +426,7 @@ impl WormholeVM {
     pub fn parse_and_verify_pyth_vm(
         current_guardian_set_index: u32,
         encoded_vm: Bytes,
-        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, StorageGuardianSet>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
     ) -> self {
         let vm = WormholeVM::parse_and_verify_wormhole_vm(current_guardian_set_index, encoded_vm, wormhole_guardian_sets);

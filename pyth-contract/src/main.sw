@@ -36,6 +36,7 @@ use ::data_structures::{
     update_type::UpdateType,
     wormhole_light::{
         GuardianSet,
+        StorageGuardianSet,
         GuardianSetUpgrade,
         GuardianSignature,
         WormholeProvider,
@@ -68,7 +69,7 @@ storage {
     // Mapping of consumed governance actions
     wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
     // Mapping of guardian_set_index => guardian set
-    wormhole_guardian_sets: StorageMap<u32, GuardianSet> = StorageMap {},
+    wormhole_guardian_sets: StorageMap<u32, StorageGuardianSet> = StorageMap {},
     // Current active guardian set index
     wormhole_guardian_set_index: u32 = 0,
     // Using Ethereum's Wormhole governance

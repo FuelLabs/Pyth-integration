@@ -5,7 +5,7 @@ use std::bytes::Bytes;
 use ::errors::{PythError};
 use ::utils::absolute_of_exponent;
 use ::pyth_merkle_proof::validate_proof;
-use ::data_structures::{wormhole_light::{GuardianSet, WormholeVM}};
+use ::data_structures::{wormhole_light::WormholeVM};
 
 // A price with a degree of uncertainty, represented as a price +- a confidence interval.
 //

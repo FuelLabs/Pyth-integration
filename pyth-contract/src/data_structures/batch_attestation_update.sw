@@ -9,7 +9,7 @@ use ::data_structures::{
         PriceFeedId,
     },
     wormhole_light::{
-        GuardianSet,
+        StorageGuardianSet,
         WormholeVM,
     },
 };
@@ -29,7 +29,7 @@ impl BatchAttestationUpdate {
     pub fn update_price_feeds(
         self,
         current_guardian_set_index: u32,
-        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, StorageGuardianSet>>,
         latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
 ) -> Vec<PriceFeedId> {

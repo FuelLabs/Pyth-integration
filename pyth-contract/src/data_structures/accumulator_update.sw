@@ -8,7 +8,7 @@ use ::data_structures::{
         PriceFeedId,
     },
     wormhole_light::{
-        GuardianSet,
+        StorageGuardianSet,
         WormholeVM,
     },
 };
@@ -63,7 +63,7 @@ impl AccumulatorUpdate {
     pub fn verify_and_parse(
         self,
         current_guardian_set_index: u32,
-        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, StorageGuardianSet>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
 ) -> (u64, Bytes, u64, Bytes) {
         let encoded_offset = self.verify();
@@ -118,7 +118,7 @@ impl AccumulatorUpdate {
     pub fn update_price_feeds(
         self,
         current_guardian_set_index: u32,
-        wormhole_guardian_sets: StorageKey<StorageMap<u32, GuardianSet>>,
+        wormhole_guardian_sets: StorageKey<StorageMap<u32, StorageGuardianSet>>,
         latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
 ) -> (u64, Vec<PriceFeedId>) {
