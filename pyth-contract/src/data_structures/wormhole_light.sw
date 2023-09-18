@@ -130,7 +130,7 @@ impl GuardianSetUpgrade {
             let (key, _) = slice.split_at(20);
             let key: b256 = key.into();
 
-            new_guardian_set.keys.push(key);
+            new_guardian_set.keys.push(key.rsh(96));
 
             index += 20;
             i += 1;
