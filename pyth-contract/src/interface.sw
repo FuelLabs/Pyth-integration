@@ -248,7 +248,7 @@ abi PythCore {
 
 abi PythInit {
     #[storage(read, write)]
-    fn constructor(data_sources: Vec<DataSource>, single_update_fee: u64, valid_time_period_seconds: u64, wormhole_guardian_set_upgrade: Bytes, wormhole_provider: WormholeProvider);
+    fn constructor(data_sources: Vec<DataSource>, single_update_fee: u64, valid_time_period_seconds: u64, wormhole_guardian_set_upgrade: Bytes);
 }
 
 abi PythInfo {

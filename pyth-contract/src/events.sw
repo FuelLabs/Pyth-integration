@@ -7,10 +7,7 @@ use ::data_structures::{
 };
 
 pub struct ConstructedEvent {
-    single_update_fee: u64,
-    valid_data_sources: Vec<DataSource>,
-    valid_time_period_seconds: u64,
-    wormhole_provider: WormholeProvider,
+    guardian_set_index: u32,
 }
 
 pub struct NewGuardianSetEvent {

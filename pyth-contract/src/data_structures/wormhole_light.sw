@@ -144,9 +144,17 @@ impl GuardianSetUpgrade {
 }
 
 pub struct WormholeProvider {
-    chain_id: u16,
     governance_chain_id: u16,
     governance_contract: b256,
+}
+
+impl WormholeProvider {
+    pub fn new(governance_chain_id: u16, governance_contract: b256) -> self {
+        WormholeProvider {
+            governance_chain_id,
+            governance_contract,
+        }
+    }
 }
 
 pub struct GuardianSignature {
@@ -231,7 +239,7 @@ pub struct WormholeVM {
     version: u8,
     guardian_set_index: u32,
     governance_action_hash: b256,
-    // signatures: Vec<GuardianSignature>, //Shown here to represent data layout of VM, but not needed 
+    // signatures: Vec<GuardianSignature>, // Shown here to represent data layout of VM, but not needed 
     timestamp: u32,
     nonce: u32,
     emitter_chain_id: u16,
@@ -418,6 +426,92 @@ impl WormholeVM {
         let (_, payload) = encoded_vm.split_at(index);
 
         WormholeVM::new(version.unwrap(), guardian_set_index, hash, _timestamp, nonce, emitter_chain_id, emitter_address, sequence, consistency_level.unwrap(), payload)
+    }
+
+    pub fn parse_initial_wormhole_vm(encoded_vm: Bytes) -> self {
+        let mut index = 0;
+
+        let version = encoded_vm.get(index);
+        require(version.is_some() && version.unwrap() == 1, WormholeError::VMVersionIncompatible);
+        index += 1;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(4); //replace with slice()
+        let guardian_set_index = u32::from_be_bytes([ //replace with func
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+        index += 4;
+
+        let signers_length = encoded_vm.get(index);
+        require(signers_length.is_some(), WormholeError::SignersLengthIrretrievable);
+        let signers_length = signers_length.unwrap().as_u64();
+        index += 1;
+
+        // 66 is the length of each guardian signature
+        // 1 (guardianIndex) + 32 (r) + 32 (s) + 1 (v)
+        let hash_index = index + (signers_length * 66);
+        require(hash_index < encoded_vm.len, WormholeError::InvalidSignatureLength);
+
+        let (_, slice) = encoded_vm.split_at(hash_index);
+        let hash = Bytes::from(slice.keccak256()).keccak256();
+
+        //ignore VM.signatures
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(4);
+        let timestamp_ = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+        index += 4;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(4);
+        let nonce = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
+        index += 4;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(2);
+        let emitter_chain_id = u16::from_be_bytes([slice.get(0).unwrap(), slice.get(1).unwrap()]);
+        index += 2;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(32);
+        let emitter_address: b256 = slice.into();
+        index += 32;
+
+        let (_, slice) = encoded_vm.split_at(index);
+        let (slice, _) = slice.split_at(8);
+        let sequence = u64::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+            slice.get(4).unwrap(),
+            slice.get(5).unwrap(),
+            slice.get(6).unwrap(),
+            slice.get(7).unwrap(),
+        ]);
+        index += 8;
+
+        let consistency_level = encoded_vm.get(index);
+        require(consistency_level.is_some(), WormholeError::ConsistencyLevelIrretrievable);
+        index += 1;
+
+        require(index <= encoded_vm.len, WormholeError::InvalidPayloadLength);
+
+        let (_, payload) = encoded_vm.split_at(index);
+
+        WormholeVM::new(version.unwrap(), guardian_set_index, hash, timestamp_, nonce, emitter_chain_id, emitter_address, sequence, consistency_level.unwrap(), payload)
     }
 }
 

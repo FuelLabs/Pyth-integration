@@ -50,6 +50,7 @@ use src_5::Ownership;
 use ownership::*;
 
 storage {
+    // Deployer must be set before deploying contract
     deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
     /// PYTH STATE ///
     // (chainId, emitterAddress) => isValid; takes advantage of
@@ -74,7 +75,6 @@ storage {
     wormhole_guardian_set_index: u32 = 0,
     // Using Ethereum's Wormhole governance
     wormhole_provider: WormholeProvider = WormholeProvider {
-        chain_id: 0u16,
         governance_chain_id: 0u16,
         governance_contract: ZERO_B256,
     },
@@ -301,7 +301,7 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
     let mut total_number_of_updates = 0;
 
-    // let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new(); // TODO: required append for Vec
+    // let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new(); // TODO: requires append for Vec
     let mut i = 0;
     while i < update_data.len {
         let data = update_data.get(i).unwrap();
@@ -309,12 +309,12 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
                 let (number_of_updates, _updated_ids) = accumulator_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
-                // updated_price_feeds.append(updated_ids); // TODO: required append for Vec
+                // updated_price_feeds.append(updated_ids); // TODO: requires append for Vec
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
                 let _updated_ids = batch_attestation_update.update_price_feeds(current_guardian_set_index(), storage.wormhole_guardian_sets, storage.latest_price_feed, storage.is_valid_data_source);
-                // updated_price_feeds.append(updated_ids); // TODO: required append for Vec
+                // updated_price_feeds.append(updated_ids); // TODO: requires append for Vec
                 total_number_of_updates += 1;
             },
         }
@@ -325,7 +325,7 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
     let required_fee = total_fee(total_number_of_updates, storage.single_update_fee);
     require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-    // log(UpdatedPriceFeedsEvent { // TODO: required append for Vec
+    // log(UpdatedPriceFeedsEvent { // TODO: requires append for Vec
     //     updated_price_feeds,
     // })
 }
@@ -342,7 +342,6 @@ impl PythInit for Contract {
         single_update_fee: u64,
         valid_time_period_seconds: u64,
         wormhole_guardian_set_upgrade: Bytes,
-        wormhole_provider: WormholeProvider,
     ) {
         storage.deployer.only_owner();
 
@@ -360,17 +359,18 @@ impl PythInit for Contract {
         storage.valid_time_period_seconds.write(valid_time_period_seconds);
         storage.single_update_fee.write(single_update_fee);
 
-        submit_new_guardian_set(wormhole_guardian_set_upgrade);
+        let vm = WormholeVM::parse_initial_wormhole_vm(wormhole_guardian_set_upgrade);
+        let upgrade = GuardianSetUpgrade::parse_encoded_upgrade(0, vm.payload);
 
-        storage.wormhole_provider.write(wormhole_provider);
+        storage.wormhole_consumed_governance_actions.insert(vm.governance_action_hash, true);
+        storage.wormhole_guardian_sets.insert(upgrade.new_guardian_set_index, upgrade.new_guardian_set);
+        storage.wormhole_guardian_set_index.write(upgrade.new_guardian_set_index);
+        storage.wormhole_provider.write(WormholeProvider::new(vm.emitter_chain_id, vm.emitter_address));
 
         storage.deployer.renounce_ownership();
 
         log(ConstructedEvent {
-            single_update_fee,
-            valid_data_sources: data_sources,
-            valid_time_period_seconds,
-            wormhole_provider,
+            guardian_set_index: upgrade.new_guardian_set_index,
         })
     }
 }
