@@ -8,9 +8,9 @@ use crate::utils::{
         },
     },
     setup::{
-        guardian_set_upgrade_3_vaa_bytes, setup_environment, ConstructedEvent, DataSource, State,
-        WormholeProvider, DEFAULT_DATA_SOURCE_CHAIN_ID, DEFAULT_DATA_SOURCE_EMITTER_ADDRESS,
-        DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD, UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
+        default_data_sources, guardian_set_upgrade_3_vaa_bytes, setup_environment,
+        ConstructedEvent, State, WormholeProvider, DEFAULT_SINGLE_UPDATE_FEE,
+        DEFAULT_VALID_TIME_PERIOD, UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
     },
 };
 use fuels::{
@@ -28,16 +28,14 @@ mod success {
     async fn constructs() {
         let (_oracle_contract_id, deployer) = setup_environment().await;
 
-        let data_source = DataSource {
-            chain_id: DEFAULT_DATA_SOURCE_CHAIN_ID,
-            emitter_address: Bits256::from_hex_str(DEFAULT_DATA_SOURCE_EMITTER_ADDRESS).unwrap(),
-        };
-
         // Initial values
         assert!(
-            !valid_data_source(&deployer.oracle_contract_instance, data_source.clone())
-                .await
-                .value
+            !valid_data_source(
+                &deployer.oracle_contract_instance,
+                &default_data_sources()[0]
+            )
+            .await
+            .value
         );
         assert_eq!(
             valid_data_sources(&deployer.oracle_contract_instance)
@@ -90,7 +88,7 @@ mod success {
 
         let response = constructor(
             &deployer.oracle_contract_instance,
-            vec![data_source.clone()],
+            default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             DEFAULT_VALID_TIME_PERIOD,
             Bytes(guardian_set_upgrade_3_vaa_bytes()),
@@ -110,9 +108,12 @@ mod success {
 
         // Final values
         assert!(
-            valid_data_source(&deployer.oracle_contract_instance, data_source)
-                .await
-                .value
+            valid_data_source(
+                &deployer.oracle_contract_instance,
+                &default_data_sources()[0]
+            )
+            .await
+            .value
         );
         assert_eq!(
             valid_data_sources(&deployer.oracle_contract_instance)
