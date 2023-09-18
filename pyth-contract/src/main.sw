@@ -51,7 +51,7 @@ use ownership::*;
 
 storage {
     // Deployer must be set before deploying contract
-    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(ZERO_B256))),
+    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(0x09c0b2d1a486c439a87bcba6b46a7a1a23f3897cc83a94521a96da5c23bc58db))),
     /// PYTH STATE ///
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification

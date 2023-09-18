@@ -458,7 +458,9 @@ impl WormholeVM {
         let (_, slice) = encoded_vm.split_at(hash_index);
         let hash = Bytes::from(slice.keccak256()).keccak256();
 
-        //ignore VM.signatures
+        // account for signatures
+        index += 66 * signers_length;
+
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4);
         let timestamp_ = u32::from_be_bytes([
