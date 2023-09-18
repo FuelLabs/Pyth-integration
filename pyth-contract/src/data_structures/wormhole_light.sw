@@ -22,28 +22,28 @@ pub struct GuardianSet {
     keys: Vec<b256>,
 }
 
-impl From<StorageGuardianSet> for GuardianSet {
-    fn from(stored: StorageGuardianSet) -> Self {
-        let expiration_time = expiration_time;
-
+impl GuardianSet {
+    // Chosen over the `From` trait as `into()` is not required 
+    // TODO: refactor with https://github.com/FuelLabs/sway/pull/5123 when available
+    #[storage(read)]
+    pub fn from_stored(stored: StorageGuardianSet) -> Self {
         let length = stored.keys.len();
-        
-        let mut keys: Vec<b256> = Vec::with_capacity(length)
+
+        let mut keys: Vec<b256> = Vec::with_capacity(length);
 
         let mut i = 0;
         while i < length {
-            keys.push(
-                stored.keys.get(i).unwrap().read()
-            );
+            keys.push(stored.keys.get(i).unwrap().read());
 
             i += 1;
         }
+
+        GuardianSet {
+            expiration_time: stored.expiration_time,
+            keys,
+        }
     }
-
-    fn into(self) -> StorageGuardianSet {}
 }
-
-
 
 pub struct StorageGuardianSet {
     expiration_time: u64,

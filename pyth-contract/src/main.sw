@@ -36,9 +36,9 @@ use ::data_structures::{
     update_type::UpdateType,
     wormhole_light::{
         GuardianSet,
-        StorageGuardianSet,
         GuardianSetUpgrade,
         GuardianSignature,
+        StorageGuardianSet,
         WormholeProvider,
         WormholeVM,
     },
@@ -441,9 +441,9 @@ impl WormholeGuardians for Contract {
 
     #[storage(read)]
     fn guardian_set(index: u32) -> GuardianSet {
-        let guardian_set = storage.wormhole_guardian_sets.get(index).try_read();
-        require(guardian_set.is_some(), PythError::GuardianSetNotFound);
-        guardian_set.unwrap()
+        let stored_guardian_set = storage.wormhole_guardian_sets.get(index).try_read();
+        require(stored_guardian_set.is_some(), PythError::GuardianSetNotFound);
+        GuardianSet::from_stored(stored_guardian_set.unwrap())
     }
 
     #[storage(read)]
