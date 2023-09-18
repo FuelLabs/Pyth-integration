@@ -161,7 +161,7 @@ mod success {
             }
         );
         assert_eq!(
-            owner(&deployer.oracle_contract_instance,).await.value,
+            owner(&deployer.oracle_contract_instance).await.value,
             State::Revoked
         );
     }

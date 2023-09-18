@@ -1,4 +1,4 @@
-use crate::utils::setup::{PythOracleContract, WormholeProvider};
+use crate::utils::setup::{GuardianSet, PythOracleContract, WormholeProvider};
 use fuels::{
     accounts::wallet::WalletUnlocked, programs::call_response::FuelCallResponse, types::Bits256,
 };
@@ -35,4 +35,11 @@ pub(crate) async fn governance_action_is_consumed(
         .call()
         .await
         .unwrap()
+}
+
+pub(crate) async fn guardian_set(
+    contract: &PythOracleContract<WalletUnlocked>,
+    index: u32,
+) -> FuelCallResponse<GuardianSet> {
+    contract.methods().guardian_set(index).call().await.unwrap()
 }
