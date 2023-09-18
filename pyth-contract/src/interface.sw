@@ -13,6 +13,7 @@ use ::data_structures::{
     },
 };
 use std::{bytes::Bytes, storage::storage_vec::*};
+use src_5::State;
 
 //abis: IPyth, setters, getters, governance, upgradeability
 
@@ -258,6 +259,9 @@ abi PythInfo {
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
 
+    #[storage(read)]
+    fn owner() -> State;
+
     /// @notice Returns true if a price feed with the given id exists.
     /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.
     #[storage(read)]
@@ -268,6 +272,9 @@ abi PythInfo {
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
     #[storage(read)]
     fn price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
+
+    #[storage(read)]
+    fn single_update_fee() -> u64;
 
     #[storage(read)]
     fn valid_data_source(data_source: DataSource) -> bool;

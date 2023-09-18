@@ -46,7 +46,7 @@ use ::data_structures::{
 use ::events::{ConstructedEvent, NewGuardianSetEvent, UpdatedPriceFeedsEvent};
 use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 
-use src_5::Ownership;
+use src_5::{Ownership, State};
 use ownership::*;
 
 storage {
@@ -399,6 +399,11 @@ impl PythInfo for Contract {
     }
 
     #[storage(read)]
+    fn owner() -> State {
+        storage.deployer.owner()
+    }
+
+    #[storage(read)]
     fn price_feed_exists(price_feed_id: PriceFeedId) -> bool {
         match storage.latest_price_feed.get(price_feed_id).try_read() {
             Some(_) => true,
@@ -411,6 +416,11 @@ impl PythInfo for Contract {
         let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
         require(price_feed.is_some(), PythError::PriceFeedNotFound);
         price_feed.unwrap()
+    }
+
+    #[storage(read)]
+    fn single_update_fee() -> u64 {
+        storage.single_update_fee.read()
     }
 
     #[storage(read)]
