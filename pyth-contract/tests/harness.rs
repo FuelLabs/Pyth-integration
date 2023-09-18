@@ -3,7 +3,7 @@ use fuels::{prelude::*, types::ContractId};
 // Load abi from json
 abigen!(Contract(
     name = "MyContract",
-    abi = "pyth-contract/out/debug/pyth-contract-abi.json"
+    abi = "./pyth-contract/out/debug/pyth-contract-abi.json"
 ));
 
 async fn get_contract_instance() -> (MyContract<WalletUnlocked>, ContractId) {
@@ -21,12 +21,11 @@ async fn get_contract_instance() -> (MyContract<WalletUnlocked>, ContractId) {
     let wallet = wallets.pop().unwrap();
 
     let storage_config =
-        StorageConfiguration::load_from("pyth-contract/out/debug/pyth-contract-storage_slots.json")
-            .unwrap();
+        StorageConfiguration::load_from("./out/debug/pyth-contract-storage_slots.json").unwrap();
 
     let load_config = LoadConfiguration::default().with_storage_configuration(storage_config);
 
-    let id = Contract::load_from("pyth-contract/out/debug/pyth-contract.bin", load_config)
+    let id = Contract::load_from("./out/debug/pyth-contract.bin", load_config)
         .unwrap()
         .deploy(&wallet, TxParameters::default())
         .await
@@ -39,7 +38,9 @@ async fn get_contract_instance() -> (MyContract<WalletUnlocked>, ContractId) {
 
 #[tokio::test]
 async fn can_get_contract_id() {
-    let (_instance, _id) = get_contract_instance().await;
+    let (_instance, id) = get_contract_instance().await;
+
+    println!("{id}");
 
     // Now you have an instance of your contract you can use to test each function
 }
