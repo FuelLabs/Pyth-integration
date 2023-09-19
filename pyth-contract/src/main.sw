@@ -49,10 +49,15 @@ use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 use src_5::{Ownership, State};
 use ownership::*;
 
+configurable {
+    DEPLOYER: b256 = 0x09c0b2d1a486c439a87bcba6b46a7a1a23f3897cc83a94521a96da5c23bc58db,
+}
+
 storage {
-    // Deployer must be set before deploying contract
-    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(0x09c0b2d1a486c439a87bcba6b46a7a1a23f3897cc83a94521a96da5c23bc58db))),
-    /// PYTH STATE ///
+    deployer: Ownership = Ownership::initialized(Identity::Address(Address::from(DEPLOYER))),
+    //   |                |
+    // --+-- PYTH STATE --+--
+    //   |                |
     // (chainId, emitterAddress) => isValid; takes advantage of
     // constant-time mapping lookup for VM verification
     is_valid_data_source: StorageMap<DataSource, bool> = StorageMap {},
@@ -66,7 +71,9 @@ storage {
     /// This includes attestation delay, block time, and potential clock drift
     /// between the source/target chains.
     valid_time_period_seconds: u64 = 0,
-    ///  WORMHOLE STATE ///
+    //   |                    |
+    // --+-- WORMHOLE STATE --+--
+    //   |                    |
     // Mapping of consumed governance actions
     wormhole_consumed_governance_actions: StorageMap<b256, bool> = StorageMap {},
     // Mapping of guardian_set_index => guardian set
