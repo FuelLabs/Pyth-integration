@@ -116,11 +116,11 @@ mod success {
             .value
         );
         assert_eq!(
-            valid_data_sources(&deployer.oracle_contract_instance)
+            &valid_data_sources(&deployer.oracle_contract_instance)
                 .await
                 .value
                 .len(),
-            1
+            &default_data_sources().len()
         );
         assert_eq!(
             valid_time_period(&deployer.oracle_contract_instance)
