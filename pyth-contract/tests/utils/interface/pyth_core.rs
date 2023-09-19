@@ -1,5 +1,7 @@
 use fuels::{
-    accounts::wallet::WalletUnlocked, prelude::Bytes, programs::call_response::FuelCallResponse,
+    accounts::wallet::WalletUnlocked,
+    prelude::{Bytes, CallParameters},
+    programs::call_response::FuelCallResponse,
 };
 
 use crate::utils::setup::PythOracleContract;
@@ -11,6 +13,20 @@ pub(crate) async fn update_fee(
     contract
         .methods()
         .update_fee(update_data)
+        .call()
+        .await
+        .unwrap()
+}
+
+pub(crate) async fn update_price_feeds(
+    contract: &PythOracleContract<WalletUnlocked>,
+    update_data: Vec<Bytes>,
+) -> FuelCallResponse<()> {
+    contract
+        .methods()
+        .update_price_feeds(update_data)
+        .call_params(CallParameters::default().with_amount(1_000))
+        .unwrap()
         .call()
         .await
         .unwrap()
