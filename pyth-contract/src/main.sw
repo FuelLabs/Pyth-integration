@@ -419,7 +419,7 @@ impl PythInfo for Contract {
     }
 
     #[storage(read)]
-    fn price_feed(price_feed_id: PriceFeedId) -> PriceFeed {
+    fn price_feed_unsafe(price_feed_id: PriceFeedId) -> PriceFeed {
         let price_feed = storage.latest_price_feed.get(price_feed_id).try_read();
         require(price_feed.is_some(), PythError::PriceFeedNotFound);
         price_feed.unwrap()

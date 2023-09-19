@@ -271,7 +271,7 @@ abi PythInfo {
     /// @dev Reverts if the price does not exist.
     /// @param price_feed_id The Pyth Price Feed ID of which to fetch the PriceFeed.
     #[storage(read)]
-    fn price_feed(price_feed_id: PriceFeedId) -> PriceFeed;
+    fn price_feed_unsafe(price_feed_id: PriceFeedId) -> PriceFeed;
 
     #[storage(read)]
     fn single_update_fee() -> u64;

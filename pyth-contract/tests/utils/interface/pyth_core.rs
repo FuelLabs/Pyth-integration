@@ -20,12 +20,13 @@ pub(crate) async fn update_fee(
 
 pub(crate) async fn update_price_feeds(
     contract: &PythOracleContract<WalletUnlocked>,
+    fee: u64,
     update_data: Vec<Bytes>,
 ) -> FuelCallResponse<()> {
     contract
         .methods()
         .update_price_feeds(update_data)
-        .call_params(CallParameters::default().with_amount(1_000))
+        .call_params(CallParameters::default().with_amount(fee))
         .unwrap()
         .call()
         .await
