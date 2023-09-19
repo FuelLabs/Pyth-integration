@@ -12,9 +12,9 @@ abigen!(Contract(
 const ORACLE_CONTRACT_BINARY_PATH: &str = "./out/debug/pyth-contract.bin";
 const ORACLE_CONTRACT_STORAGE_PATH: &str = "./out/debug/pyth-contract-storage_slots.json";
 
-const DEFAULT_DATA_SOURCE_CHAIN_ID: u16 = 1;
-const DEFAULT_DATA_SOURCE_EMITTER_ADDRESS: &str =
-    "0x71f8dcb863d176e2c420ad6610cf687359612b6fb392e0642b0ca6b1f186aa3b";
+// const DEFAULT_DATA_SOURCE_CHAIN_ID: u16 = 1;
+// const DEFAULT_DATA_SOURCE_EMITTER_ADDRESS: &str =
+//     "0x71f8dcb863d176e2c420ad6610cf687359612b6fb392e0642b0ca6b1f186aa3b";
 pub(crate) const DEFAULT_SINGLE_UPDATE_FEE: u64 = 1;
 pub(crate) const DEFAULT_VALID_TIME_PERIOD: u64 = 60;
 
@@ -83,8 +83,83 @@ pub(crate) fn default_update_data_bytes() -> Vec<Bytes> {
 }
 
 pub(crate) fn default_data_sources() -> Vec<DataSource> {
-    vec![DataSource {
-        chain_id: DEFAULT_DATA_SOURCE_CHAIN_ID,
-        emitter_address: Bits256::from_hex_str(DEFAULT_DATA_SOURCE_EMITTER_ADDRESS).unwrap(),
-    }]
+    vec![
+        DataSource {
+            chain_id: 1,
+            emitter_address: Bits256::from_hex_str(
+                "6bb14509a612f01fbbc4cffeebd4bbfb492a86df717ebe92eb6df432a3f00a25",
+            )
+            .unwrap(),
+        },
+        DataSource {
+            chain_id: 26,
+            emitter_address: Bits256::from_hex_str(
+                "f8cd23c2ab91237730770bbea08d61005cdda0984348f3f6eecb559638c0bba0",
+            )
+            .unwrap(),
+        },
+        DataSource {
+            chain_id: 26,
+            emitter_address: Bits256::from_hex_str(
+                "e101faedac5851e32b9b23b5f9411a8c2bac4aae3ed4dd7b811dd1a72ea4aa71",
+            )
+            .unwrap(),
+        },
+        DataSource {
+            chain_id: 1,
+            emitter_address: Bits256::from_hex_str(
+                "f346195ac02f37d60d4db8ffa6ef74cb1be3550047543a4a9ee9acf4d78697b0",
+            )
+            .unwrap(),
+        },
+        DataSource {
+            chain_id: 26,
+            emitter_address: Bits256::from_hex_str(
+                "a27839d641b07743c0cb5f68c51f8cd31d2c0762bec00dc6fcd25433ef1ab5b6",
+            )
+            .unwrap(),
+        },
+    ]
 }
+
+/*
+data sources from EVM deployment docs:
+https://github.com/pyth-network/pyth-crosschain/blob/2008da7a451231489d9866d7ceae3799c07e1fb5/contract_manager/src/base.ts#L116
+
+
+dataSources: [
+{
+    emitterChain: 1,
+    emitterAddress:
+    "6bb14509a612f01fbbc4cffeebd4bbfb492a86df717ebe92eb6df432a3f00a25",
+},
+{
+    emitterChain: 26,
+    emitterAddress:
+    "f8cd23c2ab91237730770bbea08d61005cdda0984348f3f6eecb559638c0bba0",
+},
+{
+    emitterChain: 26,
+    emitterAddress:
+    "e101faedac5851e32b9b23b5f9411a8c2bac4aae3ed4dd7b811dd1a72ea4aa71",
+},
+]
+
+dataSources: [
+{
+    emitterChain: 1,
+    emitterAddress:
+    "f346195ac02f37d60d4db8ffa6ef74cb1be3550047543a4a9ee9acf4d78697b0",
+},
+{
+    emitterChain: 26,
+    emitterAddress:
+    "a27839d641b07743c0cb5f68c51f8cd31d2c0762bec00dc6fcd25433ef1ab5b6",
+},
+{
+    emitterChain: 26,
+    emitterAddress:
+    "e101faedac5851e32b9b23b5f9411a8c2bac4aae3ed4dd7b811dd1a72ea4aa71",
+},
+]
+*/
