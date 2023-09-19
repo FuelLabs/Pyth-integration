@@ -208,7 +208,7 @@ impl GuardianSignature {
             0u8,
             0u8,
             0u8,
-            self.v,
+            self.v - 27u8,
         ]);
         let shifted_y_parity = y_parity.lsh(255);
         let y_parity_and_s = b256::binary_or(shifted_y_parity, self.s);
@@ -319,7 +319,7 @@ impl WormholeVM {
         require(guardian_set.is_some(), WormholeError::GuardianSetNotFound);
         let guardian_set = guardian_set.unwrap();
         require(guardian_set.keys.len() > 0, WormholeError::InvalidGuardianSetKeysLength);
-        require(guardian_set_index == current_guardian_set_index && guardian_set.expiration_time > timestamp(), WormholeError::InvalidGuardianSet);
+        require(guardian_set_index == current_guardian_set_index && (guardian_set.expiration_time == 0 || guardian_set.expiration_time > timestamp()), WormholeError::InvalidGuardianSet);
 
         let signers_length = encoded_vm.get(index);
         require(signers_length.is_some(), WormholeError::SignersLengthIrretrievable);
