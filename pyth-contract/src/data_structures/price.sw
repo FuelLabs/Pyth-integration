@@ -7,6 +7,8 @@ use ::utils::absolute_of_exponent;
 use ::pyth_merkle_proof::validate_proof;
 use ::data_structures::{wormhole_light::WormholeVM};
 
+const TAI64_DIFFERENCE = 4611686018427387904;
+
 // A price with a degree of uncertainty, represented as a price +- a confidence interval.
 //
 // The confidence interval roughly corresponds to the standard error of a normal distribution.
@@ -24,7 +26,7 @@ pub struct Price {
     exponent: u32,
     // Price
     price: u64,
-    // The timestamp describing when the price was published
+    // The TAI64 timestamp describing when the price was published
     publish_time: u64,
 }
 
@@ -137,7 +139,7 @@ impl PriceFeed {
         require(exponent < 256u32, PythError::InvalidExponent);
         offset += 4;
 
-        let publish_time = u64::from_be_bytes([
+        let mut publish_time = u64::from_be_bytes([
             encoded_price_feed.get(offset).unwrap(),
             encoded_price_feed.get(offset + 1).unwrap(),
             encoded_price_feed.get(offset + 2).unwrap(),
@@ -176,6 +178,8 @@ impl PriceFeed {
 
         require(offset <= encoded_price_feed.len, PythError::InvalidPriceFeedDataLength);
 
+        //convert publish_time from UNIX to TAI64
+        publish_time += TAI64_DIFFERENCE;
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }
 
@@ -316,6 +320,8 @@ impl PriceFeed {
 
         require((attestation_index - index) <= attestation_size.as_u64(), PythError::InvalidAttestationSize);
 
+        //convert publish_time from UNIX to TAI64
+        publish_time += TAI64_DIFFERENCE;
         PriceFeed::new(Price::new(ema_confidence, exponent, ema_price, publish_time), price_feed_id, Price::new(confidence, exponent, price, publish_time))
     }
 }

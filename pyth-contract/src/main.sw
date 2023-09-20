@@ -264,7 +264,6 @@ fn ema_price_unsafe(price_feed_id: PriceFeedId) -> Price {
 #[storage(read)]
 fn price_no_older_than(time_period: u64, price_feed_id: PriceFeedId) -> Price {
     let price = price_unsafe(price_feed_id);
-
     require(difference(timestamp(), price.publish_time) <= time_period, PythError::OutdatedPrice);
 
     price
