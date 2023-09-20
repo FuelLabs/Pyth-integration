@@ -24,12 +24,13 @@ mod success {
         )
         .await;
 
-        let response = update_fee(
+        let fee = update_fee(
             &deployer.oracle_contract_instance,
             default_update_data_bytes(),
         )
-        .await;
+        .await
+        .value;
 
-        assert_eq!(response.value, default_update_data_bytes().len() as u64);
+        assert_eq!(fee, default_update_data_bytes().len() as u64);
     }
 }

@@ -1,7 +1,7 @@
 use crate::utils::{
     interface::{
         pyth_core::{update_fee, update_price_feeds},
-        pyth_info::{price_feed_exists, price_feed_unsafe},
+        pyth_info::price_feed_exists,
         pyth_init::constructor,
     },
     setup::{
@@ -17,7 +17,7 @@ mod success {
     use super::*;
 
     #[tokio::test]
-    async fn updates_feeds() {
+    async fn updates_price_feeds() {
         let (_oracle_contract_id, deployer) = setup_environment().await;
 
         constructor(
@@ -62,8 +62,6 @@ mod success {
         )
         .await;
 
-        // TODO: Verify logs when implemented
-
         // Final values
         assert_eq!(
             (
@@ -82,32 +80,5 @@ mod success {
             ),
             (true, true)
         );
-
-        //Quick example
-        let pf1 = price_feed_unsafe(
-            &deployer.oracle_contract_instance,
-            default_price_feed_ids()[0],
-        )
-        .await
-        .value;
-        let pf2 = price_feed_unsafe(
-            &deployer.oracle_contract_instance,
-            default_price_feed_ids()[1],
-        )
-        .await
-        .value;
-
-        println!("pf1:\n{:?}\n", pf1);
-        println!("pf2:\n{:?}\n", pf2);
     }
 }
-
-/*
-pf1:
-price: Price { confidence: 70061350, exponent: 8, price: 164086958840, publish_time: 1695132706 }
-real price = price * 1e(-exponent) = 1640.86958840
-
-pf2:
-price: Price { confidence: 21603, exponent: 8, price: 100001100, publish_time: 1695132706 }
-real price = price * 1e(-exponent) = 1.00001100
-*/

@@ -2,9 +2,22 @@ use fuels::{
     accounts::wallet::WalletUnlocked,
     prelude::{Bytes, CallParameters},
     programs::call_response::FuelCallResponse,
+    types::Bits256,
 };
 
-use crate::utils::setup::PythOracleContract;
+use crate::utils::setup::{Price, PythOracleContract};
+
+pub(crate) async fn price(
+    contract: &PythOracleContract<WalletUnlocked>,
+    price_feed_id: Bits256,
+) -> FuelCallResponse<Price> {
+    contract
+        .methods()
+        .price(price_feed_id)
+        .call()
+        .await
+        .unwrap()
+}
 
 pub(crate) async fn update_fee(
     contract: &PythOracleContract<WalletUnlocked>,
