@@ -59,6 +59,9 @@ pub(crate) async fn setup_environment() -> (ContractId, Caller) {
 
     let storage_config = StorageConfiguration::load_from(ORACLE_CONTRACT_STORAGE_PATH).unwrap();
 
+    // TODO: investigate .with_DEPLOYER not found error
+    // let configurables =
+    //     PythOracleContractConfigurables::new().with_DEPLOYER(deployer_wallet.address().into());
     let load_config = LoadConfiguration::default().with_storage_configuration(storage_config);
 
     let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, load_config)
