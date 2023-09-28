@@ -1,6 +1,6 @@
 library;
 
-use std::bytes::Bytes;
+use std::{bytes::Bytes, hash::{Hash, keccak256}};
 use ::errors::PythError;
 
 /// Concatenated to leaf input as described by
@@ -15,7 +15,7 @@ fn leaf_digest(data: Bytes) -> Bytes {
     bytes.push(LEAF);
     bytes.append(data);
 
-    let (slice, _) = Bytes::from(bytes.keccak256()).split_at(20);
+    let (slice, _) = Bytes::from(keccak256(bytes)).split_at(20);
 
     slice
 }
@@ -34,7 +34,7 @@ fn node_digest(left: Bytes, right: Bytes) -> Bytes {
         bytes.append(left);
     }
 
-    let (slice, _) = Bytes::from(bytes.keccak256()).split_at(20);
+    let (slice, _) = Bytes::from(keccak256(bytes)).split_at(20);
 
     slice
 }

@@ -16,6 +16,7 @@ use std::{
         ZERO_B256,
     },
     context::msg_amount,
+    hash::Hash,
     storage::{
         storage_map::StorageMap,
         storage_vec::*,
