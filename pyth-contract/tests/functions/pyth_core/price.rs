@@ -6,7 +6,7 @@ use crate::utils::{
     setup::{
         default_data_sources, default_price_feed_ids, default_update_data_bytes,
         guardian_set_upgrade_3_vaa_bytes, setup_environment, DEFAULT_SINGLE_UPDATE_FEE,
-        ETH_USD_PRICE, EXTENDED_TIME_PERIOD, USDC_USD_PRICE,
+        ETH_USD_PRICE_FEED, EXTENDED_TIME_PERIOD, USDC_USD_PRICE_FEED,
     },
 };
 use fuels::types::Bytes;
@@ -57,11 +57,13 @@ mod success {
 
         assert_eq!(
             (eth_usd_price.price as f64) * 10f64.powf(-(eth_usd_price.exponent as f64)),
-            ETH_USD_PRICE
+            (ETH_USD_PRICE_FEED.price.price as f64)
+                * 10f64.powf(-(ETH_USD_PRICE_FEED.price.exponent as f64)),
         );
         assert_eq!(
             (usdc_usd_price.price as f64) * 10f64.powf(-(usdc_usd_price.exponent as f64)),
-            USDC_USD_PRICE
+            (USDC_USD_PRICE_FEED.price.price as f64)
+                * 10f64.powf(-(USDC_USD_PRICE_FEED.price.exponent as f64)),
         );
     }
 }
