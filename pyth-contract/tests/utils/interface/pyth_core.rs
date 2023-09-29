@@ -7,6 +7,18 @@ use fuels::{
 
 use crate::utils::setup::{Price, PythOracleContract};
 
+pub(crate) async fn ema_price(
+    contract: &PythOracleContract<WalletUnlocked>,
+    price_feed_id: Bits256,
+) -> FuelCallResponse<Price> {
+    contract
+        .methods()
+        .ema_price(price_feed_id)
+        .call()
+        .await
+        .unwrap()
+}
+
 pub(crate) async fn price(
     contract: &PythOracleContract<WalletUnlocked>,
     price_feed_id: Bits256,
