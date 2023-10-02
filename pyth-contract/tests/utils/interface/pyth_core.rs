@@ -32,6 +32,18 @@ pub(crate) async fn ema_price_no_older_than(
         .unwrap()
 }
 
+pub(crate) async fn ema_price_unsafe(
+    contract: &PythOracleContract<WalletUnlocked>,
+    price_feed_id: Bits256,
+) -> FuelCallResponse<Price> {
+    contract
+        .methods()
+        .ema_price_unsafe(price_feed_id)
+        .call()
+        .await
+        .unwrap()
+}
+
 pub(crate) async fn price(
     contract: &PythOracleContract<WalletUnlocked>,
     price_feed_id: Bits256,
