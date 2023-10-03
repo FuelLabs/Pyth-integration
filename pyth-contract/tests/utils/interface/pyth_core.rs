@@ -80,6 +80,19 @@ pub(crate) async fn price(
         .unwrap()
 }
 
+pub(crate) async fn price_no_older_than(
+    contract: &PythOracleContract<WalletUnlocked>,
+    time_period: u64,
+    price_feed_id: Bits256,
+) -> FuelCallResponse<Price> {
+    contract
+        .methods()
+        .price_no_older_than(time_period, price_feed_id)
+        .call()
+        .await
+        .unwrap()
+}
+
 pub(crate) async fn update_fee(
     contract: &PythOracleContract<WalletUnlocked>,
     update_data: Vec<Bytes>,
