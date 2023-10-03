@@ -132,6 +132,23 @@ pub(crate) async fn update_price_feeds(
         .unwrap()
 }
 
+pub(crate) async fn update_price_feeds_if_necessary(
+    contract: &PythOracleContract<WalletUnlocked>,
+    fee: u64,
+    price_feed_ids: Vec<Bits256>,
+    publish_times: Vec<u64>,
+    update_data: Vec<Bytes>,
+) -> FuelCallResponse<()> {
+    contract
+        .methods()
+        .update_price_feeds_if_necessary(price_feed_ids, publish_times, update_data)
+        .call_params(CallParameters::default().with_amount(fee))
+        .unwrap()
+        .call()
+        .await
+        .unwrap()
+}
+
 pub(crate) async fn valid_time_period(
     contract: &PythOracleContract<WalletUnlocked>,
 ) -> FuelCallResponse<u64> {
