@@ -1,11 +1,11 @@
 use fuels::{
     accounts::wallet::WalletUnlocked,
-    prelude::{Bytes, CallParameters},
+    prelude::{Bytes, CallParameters, TxParameters, DEFAULT_GAS_LIMIT},
     programs::call_response::FuelCallResponse,
     types::Bits256,
 };
 
-use crate::utils::setup::{Price, PythOracleContract};
+use crate::utils::setup::{Price, PriceFeed, PythOracleContract};
 
 pub(crate) async fn ema_price(
     contract: &PythOracleContract<WalletUnlocked>,
@@ -39,6 +39,30 @@ pub(crate) async fn ema_price_unsafe(
     contract
         .methods()
         .ema_price_unsafe(price_feed_id)
+        .call()
+        .await
+        .unwrap()
+}
+
+pub(crate) async fn parse_price_feed_updates(
+    contract: &PythOracleContract<WalletUnlocked>,
+    fee: u64,
+    max_publish_time: u64,
+    min_publish_time: u64,
+    price_feed_ids: Vec<Bits256>,
+    update_data: Vec<Bytes>,
+) -> FuelCallResponse<Vec<PriceFeed>> {
+    contract
+        .methods()
+        .parse_price_feed_updates(
+            max_publish_time,
+            min_publish_time,
+            price_feed_ids,
+            update_data,
+        )
+        .tx_params(TxParameters::default().with_gas_limit(DEFAULT_GAS_LIMIT * 2))
+        .call_params(CallParameters::default().with_amount(fee))
+        .unwrap()
         .call()
         .await
         .unwrap()
