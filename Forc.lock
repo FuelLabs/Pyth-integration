@@ -15,6 +15,15 @@ name = "pyth-contract"
 source = "member"
 dependencies = [
     "ownership",
+    "pyth_interface",
+    "src_5 git+https://github.com/FuelLabs/sway-standards?tag=v0.1.1#5a85090678f3a9deb7040424d4ee502d3d9f5bcf",
+    "std",
+]
+
+[[package]]
+name = "pyth_interface"
+source = "path+from-root-555D3D27A908977B"
+dependencies = [
     "src_5 git+https://github.com/FuelLabs/sway-standards?tag=v0.1.1#5a85090678f3a9deb7040424d4ee502d3d9f5bcf",
     "std",
 ]
