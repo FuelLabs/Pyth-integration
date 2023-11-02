@@ -1,6 +1,6 @@
 library;
 
-use ::data_structures::{
+use pyth_interface::data_structures::{
     data_source::DataSource,
     price::PriceFeedId,
     wormhole_light::WormholeProvider,
