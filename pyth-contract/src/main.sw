@@ -5,7 +5,6 @@ mod utils;
 mod pyth_merkle_proof;
 mod data_structures;
 mod events;
-mod interface;
 
 use std::{
     block::timestamp,
@@ -28,25 +27,31 @@ use ::errors::{PythError, WormholeError};
 use ::utils::{difference, total_fee};
 use ::data_structures::{
     batch_attestation_update::parse_and_verify_batch_attestation_header,
-    data_source::DataSource,
-    price::{
-        Price,
-        PriceFeed,
-        PriceFeedId,
-    },
+    data_source::*,
+    price::*,
     update_type::UpdateType,
-    wormhole_light::{
-        GuardianSet,
-        GuardianSetUpgrade,
-        GuardianSignature,
-        StorageGuardianSet,
-        WormholeProvider,
-        WormholeVM,
-    },
+    wormhole_light::*,
 };
 use ::events::{ConstructedEvent, NewGuardianSetEvent, UpdatedPriceFeedsEvent};
-use ::interface::{PythCore, PythInfo, PythInit, WormholeGuardians};
 
+use pyth_interface::{
+    data_structures::{
+        data_source::DataSource,
+        price::{
+            Price,
+            PriceFeed,
+            PriceFeedId,
+        },
+        wormhole_light::{
+            GuardianSet,
+            WormholeProvider,
+        },
+    },
+    PythCore,
+    PythInfo,
+    PythInit,
+    WormholeGuardians,
+};
 use src_5::{Ownership, State};
 use ownership::*;
 
