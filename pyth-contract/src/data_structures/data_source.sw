@@ -1,11 +1,7 @@
 library;
 
+use pyth_interface::data_structures::data_source::DataSource;
 use std::hash::{Hash, Hasher};
-
-pub struct DataSource {
-    chain_id: u16,
-    emitter_address: b256,
-}
 
 impl Hash for DataSource {
     fn hash(self, ref mut state: Hasher) {
