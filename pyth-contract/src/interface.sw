@@ -253,8 +253,6 @@ abi PythInit {
 }
 
 abi PythInfo {
-    #[storage(read)]
-    fn valid_data_sources() -> Vec<DataSource>;
 
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
@@ -278,6 +276,9 @@ abi PythInfo {
 
     #[storage(read)]
     fn valid_data_source(data_source: DataSource) -> bool;
+
+    #[storage(read)]
+    fn valid_data_sources() -> Vec<DataSource>;
 }
 
 abi WormholeGuardians {
