@@ -253,7 +253,6 @@ abi PythInit {
 }
 
 abi PythInfo {
-
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
 
