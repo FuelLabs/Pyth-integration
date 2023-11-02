@@ -1,5 +1,14 @@
 library;
 
+use ::data_structures::data_source::*;
+use ::errors::WormholeError;
+use pyth_interface::data_structures::{
+    data_source::DataSource,
+    wormhole_light::{
+        GuardianSet,
+        WormholeProvider,
+    },
+};
 use std::{
     b512::B512,
     block::timestamp,
@@ -13,13 +22,9 @@ use std::{
     storage::storage_vec::*,
     vm::evm::ecr::ec_recover_evm_address,
 };
-use ::errors::WormholeError;
-use ::data_structures::data_source::DataSource;
+
 pub const UPGRADE_MODULE: b256 = 0x00000000000000000000000000000000000000000000000000000000436f7265;
-pub struct GuardianSet {
-    expiration_time: u64,
-    keys: Vec<b256>,
-}
+
 impl GuardianSet {
     #[storage(read)]
     pub fn from_stored(stored: StorageGuardianSet) -> Self {
@@ -34,6 +39,7 @@ pub struct StorageGuardianSet {
     expiration_time: u64,
     keys: StorageKey<StorageVec<b256>>,
 }
+
 impl StorageGuardianSet {
     pub fn new(expiration_time: u64, keys: StorageKey<StorageVec<b256>>) -> self {
         StorageGuardianSet {
@@ -42,6 +48,7 @@ impl StorageGuardianSet {
         }
     }
 }
+
 pub struct GuardianSetUpgrade {
     action: u8,
     chain: u16,
@@ -49,6 +56,7 @@ pub struct GuardianSetUpgrade {
     new_guardian_set: StorageGuardianSet,
     new_guardian_set_index: u32,
 }
+
 impl GuardianSetUpgrade {
     pub fn new(
         action: u8,
@@ -66,6 +74,7 @@ impl GuardianSetUpgrade {
         }
     }
 }
+
 impl GuardianSetUpgrade {
     #[storage(read, write)]
     pub fn parse_encoded_upgrade(current_guardian_set_index: u32, encoded_upgrade: Bytes) -> self {
@@ -112,10 +121,7 @@ impl GuardianSetUpgrade {
         GuardianSetUpgrade::new(action, chain, module, new_guardian_set, new_guardian_set_index)
     }
 }
-pub struct WormholeProvider {
-    governance_chain_id: u16,
-    governance_contract: b256,
-}
+
 impl WormholeProvider {
     pub fn new(governance_chain_id: u16, governance_contract: b256) -> self {
         WormholeProvider {
@@ -124,12 +130,14 @@ impl WormholeProvider {
         }
     }
 }
+
 pub struct GuardianSignature {
     guardian_index: u8,
     r: b256,
     s: b256,
     v: u8,
 }
+
 impl GuardianSignature {
     pub fn new(guardian_index: u8, r: b256, s: b256, v: u8) -> self {
         GuardianSignature {
@@ -180,6 +188,7 @@ impl GuardianSignature {
         B512::from((self.r, y_parity_and_s))
     }
 }
+
 impl GuardianSignature {
     pub fn verify(
         self,
@@ -196,6 +205,7 @@ impl GuardianSignature {
         require(recovered_signer.is_ok() && recovered_signer.unwrap().value == guardian_set_key, WormholeError::SignatureInvalid);
     }
 }
+
 pub struct WormholeVM {
     version: u8,
     guardian_set_index: u32,
@@ -209,6 +219,7 @@ pub struct WormholeVM {
     consistency_level: u8,
     payload: Bytes,
 }
+
 impl WormholeVM {
     pub fn default() -> self {
         WormholeVM {
@@ -250,6 +261,7 @@ impl WormholeVM {
         }
     }
 }
+
 impl WormholeVM {
     #[storage(read)]
     pub fn parse_and_verify_wormhole_vm(
@@ -435,6 +447,7 @@ impl WormholeVM {
         WormholeVM::new(version.unwrap(), guardian_set_index, hash, timestamp_, nonce, emitter_chain_id, emitter_address, sequence, consistency_level.unwrap(), payload)
     }
 }
+
 impl WormholeVM {
     #[storage(read)]
     pub fn parse_and_verify_pyth_vm(
