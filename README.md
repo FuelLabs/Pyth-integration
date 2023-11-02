@@ -8,10 +8,10 @@ An implementation of a [Pyth Network](https://pyth.network/) oracle contract in 
 
 The project provides four interfaces for interaction with the oracle contract:
 
-- [PythCore](./pyth-contract/src/interface.sw#L20) - provides the core functionality to required to utilise the oracle; getting fees, updating prices and fetching prices.
-- [PythInit](./pyth-contract/src/interface.sw#L250) - provides the functionality to setup the oracle's state.
-- [PythInfo](./pyth-contract/src/interface.sw#L255) - provides additional information about the oracle's state.
-- [WormholeGuardians](./pyth-contract/src/interface.sw#L283) - provides functionality to maintain and query the wormhole-state-elements used by the oracle.
+- [PythCore](./pyth-interface/src/interface.sw#L20) - provides the core functionality to required to utilise the oracle; getting fees, updating prices and fetching prices.
+- [PythInit](./pyth-interface/src/interface.sw#L250) - provides the functionality to setup the oracle's state.
+- [PythInfo](./pyth-interface/src/interface.sw#L255) - provides additional information about the oracle's state.
+- [WormholeGuardians](./pyth-interface/src/interface.sw#L283) - provides functionality to maintain and query the wormhole-state-elements used by the oracle.
 
 ## Running the project
 
