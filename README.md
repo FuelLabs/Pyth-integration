@@ -35,6 +35,6 @@ cargo test
 
 #### Before deploying
 
-Before deploying the oracle contract; the `DEPLOYER` configurable constant must be set to the address of the deploying wallet, so that the deployer can setup the contract with the `constructor()` method.
+Before deploying the oracle contract; the `deployer` must be set to the address of the deploying wallet in the storage block, so that the deployer can setup the contract with the `constructor()` method.
 
 Parameters for the `constructor()` method can be seen in the [tests of the method](./pyth-contract/tests/functions/pyth_init/constuctor.rs#L28), which at the time of writing uses the real up-to-date values as per Pyth's documentation and EVM integrations. Care should be taken to ensure that the most up-to-date values are used for the `constructor()` method's parameters.
