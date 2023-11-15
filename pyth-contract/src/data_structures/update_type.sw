@@ -1,6 +1,6 @@
 library;
 
-use std::bytes::Bytes;
+use std::{array_conversions::u32::*, bytes::Bytes};
 use ::data_structures::{
     accumulator_update::AccumulatorUpdate,
     batch_attestation_update::BatchAttestationUpdate,
@@ -14,7 +14,7 @@ pub enum UpdateType {
 }
 
 impl UpdateType {
-    pub fn determine_type(data: Bytes) -> self {
+    pub fn determine_type(data: Bytes) -> Self {
         let (magic, _) = data.split_at(4); //TODO: Convert to u32 for comparison with const ACCUMULATOR_MAGIC. Use raw_ptr.read::<u32>()? Remove accumulator_magic_bytes()
         if data.len > 4 && magic == accumulator_magic_bytes() {
             UpdateType::Accumulator(AccumulatorUpdate::new(data))

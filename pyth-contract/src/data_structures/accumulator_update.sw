@@ -15,19 +15,31 @@ impl AccumulatorUpdate {
         Self { data }
     }
     pub fn total_updates(self, ref mut offset: u64) -> u64 {
-        let proof_size = u16::from_be_bytes([
-            self.data.get(offset).unwrap(),
-            self.data.get(offset + 1).unwrap(),
-        ]).as_u64();
+        let proof_size = u16::from_be_bytes(
+            [
+                self.data.get(offset).unwrap(),
+                self.data.get(offset + 1).unwrap(),
+            ],
+        ).as_u64();
         offset += proof_size + 2;
         self.data.get(offset).unwrap().as_u64()
     }
     pub fn verify(self) -> u64 {
         // skip magic as already checked when this is called
         let major_version = self.data.get(4);
-        require(major_version.is_some() && major_version.unwrap() == MAJOR_VERSION, PythError::InvalidMajorVersion);
+        require(
+            major_version
+                .is_some() && major_version
+                .unwrap() == MAJOR_VERSION,
+            PythError::InvalidMajorVersion,
+        );
         let minor_version = self.data.get(5);
-        require(minor_version.is_some() && minor_version.unwrap() >= MINIMUM_ALLOWED_MINOR_VERSION, PythError::InvalidMinorVersion);
+        require(
+            minor_version
+                .is_some() && minor_version
+                .unwrap() >= MINIMUM_ALLOWED_MINOR_VERSION,
+            PythError::InvalidMinorVersion,
+        );
         let trailing_header_size = self.data.get(6);
         require(trailing_header_size.is_some(), PythError::InvalidHeaderSize);
         // skip trailing headers and update type
@@ -48,14 +60,21 @@ impl AccumulatorUpdate {
         let (_, slice) = self.data.split_at(encoded_offset);
         let (encoded_slice, _) = slice.split_at(self.data.len - encoded_offset);
         let mut offset = 0;
-        let wormhole_proof_size = u16::from_be_bytes([
-            encoded_slice.get(offset).unwrap(),
-            encoded_slice.get(offset + 1).unwrap(),
-        ]).as_u64();
+        let wormhole_proof_size = u16::from_be_bytes(
+            [
+                encoded_slice.get(offset).unwrap(),
+                encoded_slice.get(offset + 1).unwrap(),
+            ],
+        ).as_u64();
         offset += 2;
         let (_, slice) = encoded_slice.split_at(offset);
         let (encoded_vm, _) = slice.split_at(wormhole_proof_size);
-        let vm = WormholeVM::parse_and_verify_pyth_vm(current_guardian_set_index, encoded_vm, wormhole_guardian_sets, is_valid_data_source);
+        let vm = WormholeVM::parse_and_verify_pyth_vm(
+            current_guardian_set_index,
+            encoded_vm,
+            wormhole_guardian_sets,
+            is_valid_data_source,
+        );
         offset += wormhole_proof_size;
         let encoded_payload = vm.payload;
         /*
@@ -69,9 +88,17 @@ impl AccumulatorUpdate {
         let (_, slice) = encoded_payload.split_at(payload_offset);
         let (digest, _) = slice.split_at(20);
         payload_offset += 20;
-        require(payload_offset <= encoded_payload.len, PythError::InvalidPayloadLength);
+        require(
+            payload_offset <= encoded_payload
+                .len,
+            PythError::InvalidPayloadLength,
+        );
         let number_of_updates = encoded_slice.get(offset);
-        require(number_of_updates.is_some(), PythError::NumberOfUpdatesIrretrievable);
+        require(
+            number_of_updates
+                .is_some(),
+            PythError::NumberOfUpdatesIrretrievable,
+        );
         offset += 1;
         (
             offset,
@@ -90,7 +117,11 @@ impl AccumulatorUpdate {
         latest_price_feed: StorageKey<StorageMap<PriceFeedId, PriceFeed>>,
         is_valid_data_source: StorageKey<StorageMap<DataSource, bool>>,
 ) -> (u64, Vec<PriceFeedId>) {
-        let (mut offset, digest, number_of_updates, encoded_data) = self.verify_and_parse(current_guardian_set_index, wormhole_guardian_sets, is_valid_data_source);
+        let (mut offset, digest, number_of_updates, encoded_data) = self.verify_and_parse(
+            current_guardian_set_index,
+            wormhole_guardian_sets,
+            is_valid_data_source,
+        );
         let mut updated_ids = Vec::new();
         let mut i = 0;
         while i < number_of_updates {
@@ -106,7 +137,11 @@ impl AccumulatorUpdate {
             }
             i += 1;
         }
-        require(offset == encoded_data.len, PythError::InvalidUpdateDataLength);
+        require(
+            offset == encoded_data
+                .len,
+            PythError::InvalidUpdateDataLength,
+        );
         (number_of_updates, updated_ids)
     }
 }

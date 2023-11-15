@@ -110,7 +110,12 @@ abi PythCore {
     /// * When the update_data is invalid
     /// * When there is no update for any of the given `priceIds` within the given time range.
     #[storage(read), payable]
-    fn parse_price_feed_updates(max_publish_time: u64, min_publish_time: u64, price_feed_ids: Vec<PriceFeedId>, update_data: Vec<Bytes>) -> Vec<PriceFeed>;
+    fn parse_price_feed_updates(
+        max_publish_time: u64,
+        min_publish_time: u64,
+        price_feed_ids: Vec<PriceFeedId>,
+        update_data: Vec<Bytes>,
+    ) -> Vec<PriceFeed>;
 
     /// This function returns the price and confidence interval.
     ///
@@ -236,7 +241,11 @@ abi PythCore {
     /// * When the transferred fee is not sufficient.
     /// * When the `update_data` is invalid.
     #[storage(read, write), payable]
-    fn update_price_feeds_if_necessary(price_feed_ids: Vec<PriceFeedId>, publish_times: Vec<u64>, update_data: Vec<Bytes>);
+    fn update_price_feeds_if_necessary(
+        price_feed_ids: Vec<PriceFeedId>,
+        publish_times: Vec<u64>,
+        update_data: Vec<Bytes>,
+    );
 
     /// This function returns the period (in seconds) that a price feed is considered valid since its publish time.
     ///
@@ -249,7 +258,12 @@ abi PythCore {
 
 abi PythInit {
     #[storage(read, write)]
-    fn constructor(data_sources: Vec<DataSource>, single_update_fee: u64, valid_time_period_seconds: u64, wormhole_guardian_set_upgrade: Bytes);
+    fn constructor(
+        data_sources: Vec<DataSource>,
+        single_update_fee: u64,
+        valid_time_period_seconds: u64,
+        wormhole_guardian_set_upgrade: Bytes,
+    );
 }
 
 abi PythInfo {
