@@ -9,7 +9,6 @@ abigen!(Contract(
 ));
 
 const ORACLE_CONTRACT_BINARY_PATH: &str = "./out/debug/pyth-contract.bin";
-const ORACLE_CONTRACT_STORAGE_PATH: &str = "./out/debug/pyth-contract-storage_slots.json";
 
 pub(crate) const DEFAULT_SINGLE_UPDATE_FEE: u64 = 1;
 pub(crate) const DEFAULT_VALID_TIME_PERIOD: u64 = 60;
@@ -87,14 +86,11 @@ pub(crate) async fn setup_environment() -> (ContractId, Caller) {
         None,
         None,
     )
-    .await;
+    .await
+    .unwrap();
     let deployer_wallet = wallets.pop().unwrap();
 
-    let storage_config = StorageConfiguration::load_from(ORACLE_CONTRACT_STORAGE_PATH).unwrap();
-
-    let load_config = LoadConfiguration::default().with_storage_configuration(storage_config);
-
-    let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, load_config)
+    let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, LoadConfiguration::default())
         .unwrap()
         .deploy(&deployer_wallet, TxParameters::default())
         .await

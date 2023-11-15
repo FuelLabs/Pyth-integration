@@ -1,6 +1,6 @@
 use fuels::{
     accounts::wallet::WalletUnlocked,
-    prelude::{Bytes, CallParameters, TxParameters, DEFAULT_GAS_LIMIT},
+    prelude::{Bytes, CallParameters, TxParameters},
     programs::call_response::FuelCallResponse,
     types::Bits256,
 };
@@ -60,7 +60,7 @@ pub(crate) async fn parse_price_feed_updates(
             price_feed_ids,
             update_data,
         )
-        .tx_params(TxParameters::default().with_gas_limit(DEFAULT_GAS_LIMIT * 2))
+        .tx_params(TxParameters::default())
         .call_params(CallParameters::default().with_amount(fee))
         .unwrap()
         .call()
