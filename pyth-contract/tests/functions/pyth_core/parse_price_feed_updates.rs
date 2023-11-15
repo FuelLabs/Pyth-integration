@@ -15,7 +15,6 @@ mod success {
 
     use super::*;
 
-    #[ignore = "Currently produces MemoryOverflow; requires investigation"]
     #[tokio::test]
     async fn parses_price_feed_updates() {
         let (_oracle_contract_id, deployer) = setup_environment().await;

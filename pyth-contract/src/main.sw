@@ -148,6 +148,7 @@ impl PythCore for Contract {
                         offset = new_offset;
 
                         if price_feed.id.is_target(target_price_feed_ids) == false {
+                            i_2 += 1;
                             continue;
                         }
 
@@ -155,6 +156,7 @@ impl PythCore for Contract {
                             // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue as we only want 1 
                             // output PriceFeed per target ID
                             if price_feed.id.is_contained_within(output_price_feeds) {
+                                i_2 += 1;
                                 continue;
                             }
 
@@ -181,6 +183,7 @@ impl PythCore for Contract {
                         number_of_attestations,
                         attestation_size,
                     ) = parse_and_verify_batch_attestation_header(vm.payload);
+                    let attestation_size_u16 = attestation_size.as_u64();
 
                     let mut i_2: u16 = 0;
                     while i_2 < number_of_attestations {
@@ -189,6 +192,8 @@ impl PythCore for Contract {
                         let price_feed_id: PriceFeedId = price_feed_id.into();
 
                         if price_feed_id.is_target(target_price_feed_ids) == false {
+                            attestation_index += attestation_size_u16;
+                            i_2 += 1;
                             continue;
                         }
 
@@ -198,13 +203,15 @@ impl PythCore for Contract {
                             // check if output_price_feeds already contains a PriceFeed with price_feed.id, if so continue; 
                             // as we only want 1 output PriceFeed per target ID
                             if price_feed.id.is_contained_within(output_price_feeds) {
+                                attestation_index += attestation_size_u16;
+                                i_2 += 1;
                                 continue;
                             }
 
                             output_price_feeds.push(price_feed)
                         }
 
-                        attestation_index += attestation_size.as_u64();
+                        attestation_index += attestation_size_u16;
                         i_2 += 1;
                     }
                 }
