@@ -92,7 +92,7 @@ pub(crate) async fn setup_environment() -> (ContractId, Caller) {
 
     let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, LoadConfiguration::default())
         .unwrap()
-        .deploy(&deployer_wallet, TxParameters::default())
+        .deploy(&deployer_wallet, TxPolicies::default())
         .await
         .unwrap();
 

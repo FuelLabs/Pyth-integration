@@ -7,7 +7,7 @@ authors = ["K1-R1 <k1r1.devwork@gmail.com>"]
 license = "Apache-2.0"
 
 [dev-dependencies]
-fuels = { version = "0.50", features = ["fuel-core-lib"] }
+fuels = { version = "0.54", features = ["fuel-core-lib"] }
 tokio = { version = "1.12", features = ["rt", "macros"] }
 hex = "0.4.3"
 
