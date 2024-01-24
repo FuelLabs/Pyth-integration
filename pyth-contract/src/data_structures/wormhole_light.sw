@@ -92,21 +92,14 @@ impl GuardianSetUpgrade {
         let action = encoded_upgrade.get(index).unwrap();
         require(action == 2, WormholeError::InvalidGovernanceAction);
         index += 1;
-        let chain = u16::from_be_bytes(
-            [
-                encoded_upgrade.get(index).unwrap(),
-                encoded_upgrade.get(index + 1).unwrap(),
-            ],
-        );
+        let chain = u16::from_be_bytes([encoded_upgrade.get(index).unwrap(), encoded_upgrade.get(index + 1).unwrap()]);
         index += 2;
-        let new_guardian_set_index = u32::from_be_bytes(
-            [
-                encoded_upgrade.get(index).unwrap(),
-                encoded_upgrade.get(index + 1).unwrap(),
-                encoded_upgrade.get(index + 2).unwrap(),
-                encoded_upgrade.get(index + 3).unwrap(),
-            ],
-        );
+        let new_guardian_set_index = u32::from_be_bytes([
+            encoded_upgrade.get(index).unwrap(),
+            encoded_upgrade.get(index + 1).unwrap(),
+            encoded_upgrade.get(index + 2).unwrap(),
+            encoded_upgrade.get(index + 3).unwrap(),
+        ]);
         require(
             new_guardian_set_index > current_guardian_set_index,
             WormholeError::NewGuardianSetIndexIsInvalid,
@@ -179,42 +172,40 @@ impl GuardianSignature {
     }
     // eip-2098: Compact Signature Representation
     pub fn compact(self) -> B512 {
-        let y_parity = b256::from_be_bytes(
-            [
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                0u8,
-                self.v - 27u8,
-            ],
-        );
+        let y_parity = b256::from_be_bytes([
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            0u8,
+            self.v - 27u8,
+        ]);
         let shifted_y_parity = y_parity.lsh(255);
         let y_parity_and_s = b256::binary_or(shifted_y_parity, self.s);
         B512::from((self.r, y_parity_and_s))
@@ -322,15 +313,13 @@ impl WormholeVM {
         index += 1;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4); //replace with slice()
-        let guardian_set_index = u32::from_be_bytes(
-            [
-                //replace with func
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let guardian_set_index = u32::from_be_bytes([
+            //replace with func
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let guardian_set = wormhole_guardian_sets.get(guardian_set_index).try_read();
         require(guardian_set.is_some(), WormholeError::GuardianSetNotFound);
@@ -343,8 +332,8 @@ impl WormholeVM {
         );
         require(
             guardian_set_index == current_guardian_set_index && (guardian_set
-                .expiration_time == 0 || guardian_set
-                .expiration_time > timestamp()),
+                    .expiration_time == 0 || guardian_set
+                    .expiration_time > timestamp()),
             WormholeError::InvalidGuardianSet,
         );
         let signers_length = encoded_vm.get(index);
@@ -405,32 +394,28 @@ impl WormholeVM {
         */
         require(
             ((((guardian_set
-                .keys
-                .len() * 10) / 3) * 2) / 10 + 1) <= signers_length,
+                                .keys
+                                .len() * 10) / 3) * 2) / 10 + 1) <= signers_length,
             WormholeError::NoQuorum,
         );
         //ignore VM.signatures
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4);
-        let _timestamp = u32::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let _timestamp = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4);
-        let nonce = u32::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let nonce = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(2);
@@ -442,18 +427,16 @@ impl WormholeVM {
         index += 32;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(8);
-        let sequence = u64::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-                slice.get(4).unwrap(),
-                slice.get(5).unwrap(),
-                slice.get(6).unwrap(),
-                slice.get(7).unwrap(),
-            ],
-        );
+        let sequence = u64::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+            slice.get(4).unwrap(),
+            slice.get(5).unwrap(),
+            slice.get(6).unwrap(),
+            slice.get(7).unwrap(),
+        ]);
         index += 8;
         let consistency_level = encoded_vm.get(index);
         require(
@@ -491,15 +474,13 @@ impl WormholeVM {
         index += 1;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4); //replace with slice()
-        let guardian_set_index = u32::from_be_bytes(
-            [
-                //replace with func
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let guardian_set_index = u32::from_be_bytes([
+            //replace with func
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let signers_length = encoded_vm.get(index);
         require(
@@ -523,25 +504,21 @@ impl WormholeVM {
         index += 66 * signers_length;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4);
-        let timestamp_ = u32::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let timestamp_ = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(4);
-        let nonce = u32::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-            ],
-        );
+        let nonce = u32::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+        ]);
         index += 4;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(2);
@@ -553,18 +530,16 @@ impl WormholeVM {
         index += 32;
         let (_, slice) = encoded_vm.split_at(index);
         let (slice, _) = slice.split_at(8);
-        let sequence = u64::from_be_bytes(
-            [
-                slice.get(0).unwrap(),
-                slice.get(1).unwrap(),
-                slice.get(2).unwrap(),
-                slice.get(3).unwrap(),
-                slice.get(4).unwrap(),
-                slice.get(5).unwrap(),
-                slice.get(6).unwrap(),
-                slice.get(7).unwrap(),
-            ],
-        );
+        let sequence = u64::from_be_bytes([
+            slice.get(0).unwrap(),
+            slice.get(1).unwrap(),
+            slice.get(2).unwrap(),
+            slice.get(3).unwrap(),
+            slice.get(4).unwrap(),
+            slice.get(5).unwrap(),
+            slice.get(6).unwrap(),
+            slice.get(7).unwrap(),
+        ]);
         index += 8;
         let consistency_level = encoded_vm.get(index);
         require(

@@ -52,17 +52,15 @@ use pyth_interface::{
     PythInit,
     WormholeGuardians,
 };
-use src_5::{Ownership, State};
+
 use ownership::*;
+use src5::{SRC5, State};
+
+configurable {
+    DEPLOYER: Identity = Identity::Address(Address::from(ZERO_B256)),
+}
 
 storage {
-    deployer: Ownership = Ownership::initialized(
-        Identity::Address(
-            Address::from(
-                0x09c0b2d1a486c439a87bcba6b46a7a1a23f3897cc83a94521a96da5c23bc58db,
-            ),
-        ),
-    ),
     //   |                |
     // --+-- PYTH STATE --+--
     //   |                |
@@ -93,6 +91,13 @@ storage {
         governance_chain_id: 0u16,
         governance_contract: ZERO_B256,
     },
+}
+
+impl SRC5 for Contract {
+    #[storage(read)]
+    fn owner() -> State {
+        _owner()
+    }
 }
 
 impl PythCore for Contract {
@@ -133,14 +138,13 @@ impl PythCore for Contract {
 
             match UpdateType::determine_type(data) {
                 UpdateType::Accumulator(accumulator_update) => {
-                    let (mut offset, digest, number_of_updates, encoded) = accumulator_update
-                        .verify_and_parse(
-                            current_guardian_set_index(),
-                            storage
-                                .wormhole_guardian_sets,
-                            storage
-                                .is_valid_data_source,
-                        );
+                    let (mut offset, digest, number_of_updates, encoded) = accumulator_update.verify_and_parse(
+                        current_guardian_set_index(),
+                        storage
+                            .wormhole_guardian_sets,
+                        storage
+                            .is_valid_data_source,
+                    );
                     let mut i_2 = 0;
                     while i_2 < number_of_updates {
                         let (new_offset, price_feed) = PriceFeed::extract_from_merkle_proof(digest, encoded, offset);
@@ -178,11 +182,7 @@ impl PythCore for Contract {
                             .is_valid_data_source,
                     );
 
-                    let (
-                        mut attestation_index,
-                        number_of_attestations,
-                        attestation_size,
-                    ) = parse_and_verify_batch_attestation_header(vm.payload);
+                    let (mut attestation_index, number_of_attestations, attestation_size) = parse_and_verify_batch_attestation_header(vm.payload);
                     let attestation_size_u16 = attestation_size.as_u64();
 
                     let mut i_2: u16 = 0;
@@ -335,11 +335,9 @@ fn update_fee(update_data: Vec<Bytes>) -> u64 {
 
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                let proof_size_offset = accumulator_update
-                    .verify();
+                let proof_size_offset = accumulator_update.verify();
 
-                total_number_of_updates += accumulator_update
-                    .total_updates(proof_size_offset);
+                total_number_of_updates += accumulator_update.total_updates(proof_size_offset);
             },
             UpdateType::BatchAttestation => {
                 total_number_of_updates += 1;
@@ -368,30 +366,28 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
         match UpdateType::determine_type(data) {
             UpdateType::Accumulator(accumulator_update) => {
-                let (number_of_updates, _updated_ids) = accumulator_update
-                    .update_price_feeds(
-                        current_guardian_set_index(),
-                        storage
-                            .wormhole_guardian_sets,
-                        storage
-                            .latest_price_feed,
-                        storage
-                            .is_valid_data_source,
-                    );
+                let (number_of_updates, _updated_ids) = accumulator_update.update_price_feeds(
+                    current_guardian_set_index(),
+                    storage
+                        .wormhole_guardian_sets,
+                    storage
+                        .latest_price_feed,
+                    storage
+                        .is_valid_data_source,
+                );
                 // updated_price_feeds.append(updated_ids); // TODO: requires append for Vec
                 total_number_of_updates += number_of_updates;
             },
             UpdateType::BatchAttestation(batch_attestation_update) => {
-                let _updated_ids = batch_attestation_update
-                    .update_price_feeds(
-                        current_guardian_set_index(),
-                        storage
-                            .wormhole_guardian_sets,
-                        storage
-                            .latest_price_feed,
-                        storage
-                            .is_valid_data_source,
-                    );
+                let _updated_ids = batch_attestation_update.update_price_feeds(
+                    current_guardian_set_index(),
+                    storage
+                        .wormhole_guardian_sets,
+                    storage
+                        .latest_price_feed,
+                    storage
+                        .is_valid_data_source,
+                );
                 // updated_price_feeds.append(updated_ids); // TODO: requires append for Vec
                 total_number_of_updates += 1;
             },
@@ -421,7 +417,8 @@ impl PythInit for Contract {
         valid_time_period_seconds: u64,
         wormhole_guardian_set_upgrade: Bytes,
     ) {
-        storage.deployer.only_owner();
+        initialize_ownership(DEPLOYER);
+        only_owner();
 
         require(data_sources.len > 0, PythError::InvalidDataSourcesLength);
 
@@ -453,11 +450,9 @@ impl PythInit for Contract {
             .write(upgrade.new_guardian_set_index);
         storage
             .wormhole_provider
-            .write(
-                WormholeProvider::new(vm.emitter_chain_id, vm.emitter_address),
-            );
+            .write(WormholeProvider::new(vm.emitter_chain_id, vm.emitter_address));
 
-        storage.deployer.renounce_ownership();
+        renounce_ownership();
 
         log(ConstructedEvent {
             guardian_set_index: upgrade.new_guardian_set_index,
@@ -474,11 +469,6 @@ impl PythInfo for Contract {
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64 {
         latest_publish_time(price_feed_id)
-    }
-
-    #[storage(read)]
-    fn owner() -> State {
-        storage.deployer.owner()
     }
 
     #[storage(read)]

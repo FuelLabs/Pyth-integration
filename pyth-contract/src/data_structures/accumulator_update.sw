@@ -15,12 +15,7 @@ impl AccumulatorUpdate {
         Self { data }
     }
     pub fn total_updates(self, ref mut offset: u64) -> u64 {
-        let proof_size = u16::from_be_bytes(
-            [
-                self.data.get(offset).unwrap(),
-                self.data.get(offset + 1).unwrap(),
-            ],
-        ).as_u64();
+        let proof_size = u16::from_be_bytes([self.data.get(offset).unwrap(), self.data.get(offset + 1).unwrap()]).as_u64();
         offset += proof_size + 2;
         self.data.get(offset).unwrap().as_u64()
     }
@@ -60,12 +55,7 @@ impl AccumulatorUpdate {
         let (_, slice) = self.data.split_at(encoded_offset);
         let (encoded_slice, _) = slice.split_at(self.data.len - encoded_offset);
         let mut offset = 0;
-        let wormhole_proof_size = u16::from_be_bytes(
-            [
-                encoded_slice.get(offset).unwrap(),
-                encoded_slice.get(offset + 1).unwrap(),
-            ],
-        ).as_u64();
+        let wormhole_proof_size = u16::from_be_bytes([encoded_slice.get(offset).unwrap(), encoded_slice.get(offset + 1).unwrap()]).as_u64();
         offset += 2;
         let (_, slice) = encoded_slice.split_at(offset);
         let (encoded_vm, _) = slice.split_at(wormhole_proof_size);
@@ -100,12 +90,7 @@ impl AccumulatorUpdate {
             PythError::NumberOfUpdatesIrretrievable,
         );
         offset += 1;
-        (
-            offset,
-            digest,
-            number_of_updates.unwrap().as_u64(),
-            encoded_slice,
-        )
+        (offset, digest, number_of_updates.unwrap().as_u64(), encoded_slice)
     }
 }
 impl AccumulatorUpdate {
