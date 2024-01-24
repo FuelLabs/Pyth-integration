@@ -15,7 +15,6 @@ use ::data_structures::{
     },
 };
 use std::{bytes::Bytes, storage::storage_vec::*};
-use src_5::State;
 
 abi PythCore {
     /// This function returns the exponentially-weighted moving average price and confidence interval.
@@ -269,9 +268,6 @@ abi PythInit {
 abi PythInfo {
     #[storage(read)]
     fn latest_publish_time(price_feed_id: PriceFeedId) -> u64;
-
-    #[storage(read)]
-    fn owner() -> State;
 
     /// @notice Returns true if a price feed with the given id exists.
     /// @param price_feed_id The Pyth Price Feed ID of which to check its existence.

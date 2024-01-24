@@ -13,14 +13,9 @@ use crate::utils::{
         DEFAULT_VALID_TIME_PERIOD, UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
     },
 };
-use fuels::{
-    prelude::Address,
-    types::{Bits256, Bytes},
-};
+use fuels::types::{Bits256, Bytes};
 
 mod success {
-
-    use fuels::types::Identity;
 
     use super::*;
 
@@ -81,9 +76,7 @@ mod success {
         );
         assert_eq!(
             owner(&deployer.oracle_contract_instance,).await.value,
-            State::Initialized(Identity::Address(Address::from(
-                &deployer.wallet.address().into()
-            )))
+            State::Uninitialized
         );
 
         let response = constructor(
@@ -98,7 +91,7 @@ mod success {
         let log = response
             .decode_logs_with_type::<ConstructedEvent>()
             .unwrap();
-        let event = log.get(0).unwrap();
+        let event = log.first().unwrap();
         assert_eq!(
             *event,
             ConstructedEvent {

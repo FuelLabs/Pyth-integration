@@ -3,11 +3,11 @@ name = "pyth-contract"
 description = "A cargo-generate template for Rust + Sway integration testing."
 version = "0.1.0"
 edition = "2021"
-authors = ["K1-R1 <k1r1.devwork@gmail.com>"]
+authors = ["Fuel Labs <contact@fuel.sh>"]
 license = "Apache-2.0"
 
 [dev-dependencies]
-fuels = { version = "0.50", features = ["fuel-core-lib"] }
+fuels = { version = "0.54", features = ["fuel-core-lib"] }
 tokio = { version = "1.12", features = ["rt", "macros"] }
 hex = "0.4.3"
 

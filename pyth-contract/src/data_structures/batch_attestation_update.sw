@@ -28,11 +28,7 @@ impl BatchAttestationUpdate {
             wormhole_guardian_sets,
             is_valid_data_source,
         );
-        let (
-            mut attestation_index,
-            number_of_attestations,
-            attestation_size,
-        ) = parse_and_verify_batch_attestation_header(vm.payload);
+        let (mut attestation_index, number_of_attestations, attestation_size) = parse_and_verify_batch_attestation_header(vm.payload);
         let mut updated_ids = Vec::new();
         let mut i: u16 = 0;
         while i < number_of_attestations {
@@ -55,31 +51,19 @@ impl BatchAttestationUpdate {
 pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64, u16, u16) {
     let mut index = 0;
     //Check header
-    let magic = u32::from_be_bytes(
-        [
-            encoded_payload.get(index).unwrap(),
-            encoded_payload.get(index + 1).unwrap(),
-            encoded_payload.get(index + 2).unwrap(),
-            encoded_payload.get(index + 3).unwrap(),
-        ],
-    );
+    let magic = u32::from_be_bytes([
+        encoded_payload.get(index).unwrap(),
+        encoded_payload.get(index + 1).unwrap(),
+        encoded_payload.get(index + 2).unwrap(),
+        encoded_payload.get(index + 3).unwrap(),
+    ]);
     require(magic == BATCH_MAGIC, PythError::InvalidMagic);
     index += 4;
-    let major_version = u16::from_be_bytes(
-        [
-            encoded_payload.get(index).unwrap(),
-            encoded_payload.get(index + 1).unwrap(),
-        ],
-    );
+    let major_version = u16::from_be_bytes([encoded_payload.get(index).unwrap(), encoded_payload.get(index + 1).unwrap()]);
     require(major_version == 3, PythError::InvalidMajorVersion);
     // addtionally skip minor_version(2 bytes) as unused
     index += 4;
-    let header_size = u16::from_be_bytes(
-        [
-            encoded_payload.get(index).unwrap(),
-            encoded_payload.get(index + 1).unwrap(),
-        ],
-    );
+    let header_size = u16::from_be_bytes([encoded_payload.get(index).unwrap(), encoded_payload.get(index + 1).unwrap()]);
     index += 2;
     // From solidity impl:
     // NOTE(2022-04-19): Currently, only payloadId comes after
@@ -97,19 +81,9 @@ pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64
     require(payload_id == 2, PythError::InvalidPayloadId);
     // Skip remaining unknown header bytes
     index += header_size.as_u64();
-    let number_of_attestations = u16::from_be_bytes(
-        [
-            encoded_payload.get(index).unwrap(),
-            encoded_payload.get(index + 1).unwrap(),
-        ],
-    );
+    let number_of_attestations = u16::from_be_bytes([encoded_payload.get(index).unwrap(), encoded_payload.get(index + 1).unwrap()]);
     index += 2;
-    let attestation_size = u16::from_be_bytes(
-        [
-            encoded_payload.get(index).unwrap(),
-            encoded_payload.get(index + 1).unwrap(),
-        ],
-    );
+    let attestation_size = u16::from_be_bytes([encoded_payload.get(index).unwrap(), encoded_payload.get(index + 1).unwrap()]);
     index += 2;
     require(
         encoded_payload
