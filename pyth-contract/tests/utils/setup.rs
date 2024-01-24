@@ -1,6 +1,8 @@
+
+
 use fuels::{
     prelude::*,
-    types::{Bits256, ContractId},
+    types::{Bits256, ContractId, Identity},
 };
 
 abigen!(Contract(
@@ -90,11 +92,17 @@ pub(crate) async fn setup_environment() -> (ContractId, Caller) {
     .unwrap();
     let deployer_wallet = wallets.pop().unwrap();
 
-    let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, LoadConfiguration::default())
-        .unwrap()
-        .deploy(&deployer_wallet, TxParameters::default())
-        .await
-        .unwrap();
+    let configurables = PythOracleContractConfigurables::new()
+        .with_DEPLOYER(Identity::Address(deployer_wallet.address().into()));
+
+    let id = Contract::load_from(
+        ORACLE_CONTRACT_BINARY_PATH,
+        LoadConfiguration::default().with_configurables(configurables),
+    )
+    .unwrap()
+    .deploy(&deployer_wallet, TxPolicies::default())
+    .await
+    .unwrap();
 
     let deployer = Caller {
         oracle_contract_instance: PythOracleContract::new(id.clone(), deployer_wallet.clone()),
