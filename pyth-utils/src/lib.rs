@@ -11,7 +11,7 @@ use rand::Rng;
 
 abigen!(Contract(
     name = "PythOracleContract",
-    abi = "pyth-utils/abi/pyth-contract-abi.json"
+    abi = "./pyth-utils/src/abi/pyth-contract-abi.json"
 ));
 
 pub struct PythInstance {
