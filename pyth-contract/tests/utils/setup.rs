@@ -1,5 +1,3 @@
-
-
 use fuels::{
     prelude::*,
     types::{Bits256, ContractId, Identity},

@@ -1,3 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["./pyth-contract"]
+members = ["./pyth-contract", "./pyth-utils"]
+
+[workspace.package]
+authors = ["Fuel Labs <contact@fuel.sh>"]
+edition = "2021"
+homepage = "https://fuel.network/"
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/FuelLabs/Pyth-integration"
+rust-version = "1.74.0"
+version = "0.0.4"
