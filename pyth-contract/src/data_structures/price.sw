@@ -285,17 +285,19 @@ impl PriceFeed {
 }
 
 impl PriceFeed {
-    pub fn extract_from_merkle_proof(
-        digest: Bytes,
-        encoded_proof: Bytes,
-        ref mut offset: u64,
-    ) -> (u64, self) {
-        let message_size = u16::from_be_bytes([encoded_proof.get(offset).unwrap(), encoded_proof.get(offset + 1).unwrap()]).as_u64();
-        offset += 2;
-        let (_, slice) = encoded_proof.split_at(offset);
+    pub fn extract_from_merkle_proof(digest: Bytes, encoded_proof: Bytes, offset: u64) -> (u64, self) {
+        // In order to avoid `ref mut` param related MemoryWriteOverlap error
+        let mut current_offset = offset;
+
+        let message_size = u16::from_be_bytes([
+            encoded_proof.get(current_offset).unwrap(),
+            encoded_proof.get(current_offset + 1).unwrap(),
+        ]).as_u64();
+        current_offset += 2;
+        let (_, slice) = encoded_proof.split_at(current_offset);
         let (encoded_message, _) = slice.split_at(message_size);
-        offset += message_size;
-        let end_offset = validate_proof(encoded_proof, encoded_message, offset, digest);
+        current_offset += message_size;
+        let end_offset = validate_proof(encoded_proof, encoded_message, current_offset, digest);
         // Message type of 0 is a Price Feed
         require(
             encoded_message
