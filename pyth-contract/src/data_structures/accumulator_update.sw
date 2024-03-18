@@ -107,6 +107,7 @@ impl AccumulatorUpdate {
             wormhole_guardian_sets,
             is_valid_data_source,
         );
+
         let mut updated_ids = Vec::new();
         let mut i = 0;
         while i < number_of_updates {
