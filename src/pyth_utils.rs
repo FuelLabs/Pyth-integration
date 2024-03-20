@@ -80,7 +80,7 @@ pub async fn update_data_bytes(price_feed_ids: Option<Vec<&str>>) -> Vec<Bytes> 
     );
 
     let body = c.get(req).send().await.unwrap().text().await.unwrap();
-    let responce: [&str; 3] = serde_json::from_str(body.as_str()).unwrap();
+    let responce: [&str; 1] = serde_json::from_str(body.as_str()).unwrap();
     responce
         .iter()
         .map(|data| {
