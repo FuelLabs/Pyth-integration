@@ -1,7 +1,7 @@
 use crate::utils::interface::{pyth_core::update_fee, pyth_init::constructor};
 use crate::utils::setup::setup_environment;
 use fuels::types::Bytes;
-use pyth_contract::pyth_utils::{
+use pyth_sdk::pyth_utils::{
     default_accumulator_update_data_bytes, default_batch_update_data_bytes, default_data_sources,
     guardian_set_upgrade_3_vaa_bytes, DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD,
 };

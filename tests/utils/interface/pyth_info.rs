@@ -2,7 +2,7 @@ use fuels::{
     accounts::wallet::WalletUnlocked, programs::call_response::FuelCallResponse, types::Bits256,
 };
 
-use pyth_contract::pyth_utils::{DataSource, PriceFeed, PythOracleContract, State};
+use pyth_sdk::pyth_utils::{DataSource, PriceFeed, PythOracleContract, State};
 
 pub(crate) async fn owner(
     contract: &PythOracleContract<WalletUnlocked>,

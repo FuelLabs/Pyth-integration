@@ -2,7 +2,7 @@ use fuels::{
     test_helpers::{launch_custom_provider_and_get_wallets, WalletsConfig},
     types::ContractId,
 };
-use pyth_contract::pyth_utils::Pyth;
+use pyth_sdk::pyth_utils::Pyth;
 
 pub(crate) async fn setup_environment() -> (ContractId, Pyth) {
     // Launch a local network and deploy the contract

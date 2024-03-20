@@ -5,7 +5,7 @@ use crate::utils::interface::{
 };
 use crate::utils::setup::setup_environment;
 use fuels::types::Bytes;
-use pyth_contract::pyth_utils::{
+use pyth_sdk::pyth_utils::{
     default_accumulator_update_data_bytes, default_batch_update_data_bytes, default_data_sources,
     default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes, ACCUMULATOR_ETH_USD_PRICE_FEED,
     ACCUMULATOR_USDC_USD_PRICE_FEED, BATCH_ETH_USD_PRICE_FEED, BATCH_USDC_USD_PRICE_FEED,

@@ -6,7 +6,7 @@ use crate::utils::interface::{
         current_guardian_set_index, current_wormhole_provider, governance_action_is_consumed,
     },
 };
-use pyth_contract::pyth_utils::{
+use pyth_sdk::pyth_utils::{
     default_data_sources, guardian_set_upgrade_3_vaa_bytes, ConstructedEvent, State,
     WormholeProvider, DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD,
     UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
