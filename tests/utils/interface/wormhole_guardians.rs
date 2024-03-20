@@ -1,7 +1,7 @@
-use crate::utils::setup::{GuardianSet, PythOracleContract, WormholeProvider};
 use fuels::{
     accounts::wallet::WalletUnlocked, programs::call_response::FuelCallResponse, types::Bits256,
 };
+use pyth_sdk::pyth_utils::{GuardianSet, PythOracleContract, WormholeProvider};
 
 pub(crate) async fn current_guardian_set_index(
     contract: &PythOracleContract<WalletUnlocked>,
@@ -37,7 +37,7 @@ pub(crate) async fn governance_action_is_consumed(
         .unwrap()
 }
 
-pub(crate) async fn guardian_set(
+pub(crate) async fn _guardian_set(
     contract: &PythOracleContract<WalletUnlocked>,
     index: u32,
 ) -> FuelCallResponse<GuardianSet> {
