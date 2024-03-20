@@ -2678,7 +2678,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pyth-contract"
+name = "pyth_sdk"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.0",
