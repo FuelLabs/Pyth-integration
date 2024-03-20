@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use base64::{
     engine::general_purpose,
     prelude::{Engine, BASE64_STANDARD},
@@ -144,12 +146,15 @@ impl Pyth {
             .with_DEPLOYER(Identity::Address(Address::from(wallet.address())));
         let config = LoadConfiguration::default().with_configurables(configurables);
 
-        let id = Contract::load_from(ORACLE_CONTRACT_BINARY_PATH, config)
-            .unwrap()
-            .with_salt(salt)
-            .deploy(wallet, TxPolicies::default().with_gas_price(1))
-            .await
-            .unwrap();
+        let id = Contract::load_from(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(ORACLE_CONTRACT_BINARY_PATH),
+            config,
+        )
+        .unwrap()
+        .with_salt(salt)
+        .deploy(wallet, TxPolicies::default().with_gas_price(1))
+        .await
+        .unwrap();
 
         Self {
             instance: PythOracleContract::new(id, wallet.clone()),
