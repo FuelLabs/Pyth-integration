@@ -5,7 +5,7 @@ use fuels::{
     types::Bits256,
 };
 
-use crate::utils::setup::{Price, PriceFeed, PythOracleContract};
+use pyth_sdk::pyth_utils::{Price, PriceFeed, PythOracleContract};
 
 pub(crate) async fn ema_price(
     contract: &PythOracleContract<WalletUnlocked>,
