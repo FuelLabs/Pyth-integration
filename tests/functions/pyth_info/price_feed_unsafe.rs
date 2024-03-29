@@ -5,11 +5,16 @@ use crate::utils::interface::{
 };
 use crate::utils::setup::setup_environment;
 use fuels::types::Bytes;
-use pyth_sdk::pyth_utils::{
-    default_accumulator_update_data_bytes, default_batch_update_data_bytes, default_data_sources,
-    default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes, ACCUMULATOR_ETH_USD_PRICE_FEED,
-    ACCUMULATOR_USDC_USD_PRICE_FEED, BATCH_ETH_USD_PRICE_FEED, BATCH_USDC_USD_PRICE_FEED,
-    DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD,
+use pyth_sdk::{
+    constants::{
+        DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD, TEST_ACCUMULATOR_ETH_USD_PRICE_FEED,
+        TEST_ACCUMULATOR_USDC_USD_PRICE_FEED, TEST_BATCH_ETH_USD_PRICE_FEED,
+        TEST_BATCH_USDC_USD_PRICE_FEED,
+    },
+    pyth_utils::{
+        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes,
+        test_accumulator_update_data_bytes, test_batch_update_data_bytes,
+    },
 };
 mod success {
 
@@ -17,7 +22,7 @@ mod success {
 
     #[tokio::test]
     async fn gets_price_feed_from_batch_update() {
-        let (_oracle_contract_id, deployer) = setup_environment().await;
+        let (_oracle_contract_id, deployer) = setup_environment().await.unwrap();
 
         constructor(
             &deployer.instance,
@@ -28,11 +33,11 @@ mod success {
         )
         .await;
 
-        let fee = update_fee(&deployer.instance, default_batch_update_data_bytes())
+        let fee = update_fee(&deployer.instance, test_batch_update_data_bytes())
             .await
             .value;
 
-        update_price_feeds(&deployer.instance, fee, default_batch_update_data_bytes()).await;
+        update_price_feeds(&deployer.instance, fee, test_batch_update_data_bytes()).await;
 
         let eth_usd_price_feed = price_feed_unsafe(&deployer.instance, default_price_feed_ids()[0])
             .await
@@ -42,13 +47,13 @@ mod success {
                 .await
                 .value;
 
-        assert_eq!(eth_usd_price_feed, BATCH_ETH_USD_PRICE_FEED);
-        assert_eq!(usdc_usd_price_feed, BATCH_USDC_USD_PRICE_FEED);
+        assert_eq!(eth_usd_price_feed, TEST_BATCH_ETH_USD_PRICE_FEED);
+        assert_eq!(usdc_usd_price_feed, TEST_BATCH_USDC_USD_PRICE_FEED);
     }
 
     #[tokio::test]
     async fn gets_price_feed_from_accumulator_update() {
-        let (_oracle_contract_id, deployer) = setup_environment().await;
+        let (_oracle_contract_id, deployer) = setup_environment().await.unwrap();
 
         constructor(
             &deployer.instance,
@@ -59,14 +64,14 @@ mod success {
         )
         .await;
 
-        let fee = update_fee(&deployer.instance, default_accumulator_update_data_bytes())
+        let fee = update_fee(&deployer.instance, test_accumulator_update_data_bytes())
             .await
             .value;
 
         update_price_feeds(
             &deployer.instance,
             fee,
-            default_accumulator_update_data_bytes(),
+            test_accumulator_update_data_bytes(),
         )
         .await;
 
@@ -78,7 +83,7 @@ mod success {
                 .await
                 .value;
 
-        assert_eq!(eth_usd_price_feed, ACCUMULATOR_ETH_USD_PRICE_FEED);
-        assert_eq!(usdc_usd_price_feed, ACCUMULATOR_USDC_USD_PRICE_FEED);
+        assert_eq!(eth_usd_price_feed, TEST_ACCUMULATOR_ETH_USD_PRICE_FEED);
+        assert_eq!(usdc_usd_price_feed, TEST_ACCUMULATOR_USDC_USD_PRICE_FEED);
     }
 }

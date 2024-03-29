@@ -6,10 +6,14 @@ use crate::utils::interface::{
         current_guardian_set_index, current_wormhole_provider, governance_action_is_consumed,
     },
 };
-use pyth_sdk::pyth_utils::{
-    default_data_sources, guardian_set_upgrade_3_vaa_bytes, ConstructedEvent, State,
-    WormholeProvider, DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD,
-    UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
+use pyth_sdk::{
+    constants::{
+        DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD, UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
+    },
+    pyth_utils::{
+        default_data_sources, guardian_set_upgrade_3_vaa_bytes, ConstructedEvent, State,
+        WormholeProvider,
+    },
 };
 
 use fuels::types::{Bits256, Bytes};
@@ -22,7 +26,7 @@ mod success {
 
     #[tokio::test]
     async fn constructs() {
-        let (_oracle_contract_id, deployer) = setup_environment().await;
+        let (_oracle_contract_id, deployer) = setup_environment().await.unwrap();
 
         // Initial values
         assert!(

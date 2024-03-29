@@ -6,10 +6,12 @@ use crate::utils::interface::{
 
 use crate::utils::setup::setup_environment;
 use fuels::types::Bytes;
-use pyth_sdk::pyth_utils::{
-    default_accumulator_update_data_bytes, default_batch_update_data_bytes, default_data_sources,
-    default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes, DEFAULT_SINGLE_UPDATE_FEE,
-    DEFAULT_VALID_TIME_PERIOD,
+use pyth_sdk::{
+    constants::{DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD},
+    pyth_utils::{
+        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes,
+        test_accumulator_update_data_bytes, test_batch_update_data_bytes,
+    },
 };
 mod success {
 
@@ -17,7 +19,7 @@ mod success {
 
     #[tokio::test]
     async fn updates_price_feeds_for_batch_update() {
-        let (_oracle_contract_id, deployer) = setup_environment().await;
+        let (_oracle_contract_id, deployer) = setup_environment().await.unwrap();
 
         constructor(
             &deployer.instance,
@@ -28,7 +30,7 @@ mod success {
         )
         .await;
 
-        let fee = update_fee(&deployer.instance, default_batch_update_data_bytes())
+        let fee = update_fee(&deployer.instance, test_batch_update_data_bytes())
             .await
             .value;
 
@@ -45,7 +47,7 @@ mod success {
             (false, false)
         );
 
-        update_price_feeds(&deployer.instance, fee, default_batch_update_data_bytes()).await;
+        update_price_feeds(&deployer.instance, fee, test_batch_update_data_bytes()).await;
 
         // Final values
         assert_eq!(
@@ -63,7 +65,7 @@ mod success {
 
     #[tokio::test]
     async fn updates_price_feeds_for_accumulator_update() {
-        let (_oracle_contract_id, deployer) = setup_environment().await;
+        let (_oracle_contract_id, deployer) = setup_environment().await.unwrap();
 
         constructor(
             &deployer.instance,
@@ -74,7 +76,7 @@ mod success {
         )
         .await;
 
-        let fee = update_fee(&deployer.instance, default_accumulator_update_data_bytes())
+        let fee = update_fee(&deployer.instance, test_accumulator_update_data_bytes())
             .await
             .value;
 
@@ -94,7 +96,7 @@ mod success {
         update_price_feeds(
             &deployer.instance,
             fee,
-            default_accumulator_update_data_bytes(),
+            test_accumulator_update_data_bytes(),
         )
         .await;
 
