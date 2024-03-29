@@ -6,12 +6,6 @@ edition = "2021"
 authors = ["Fuel Labs <contact@fuel.sh>"]
 license = "Apache-2.0"
 
-
-[[test]]
-harness = true
-name = "integration_tests"
-path = "tests/harness.rs"
-
 [dependencies]
 rand = "0.8.5"
 base64 = "0.22"
@@ -26,3 +20,8 @@ dotenv = "0.15.0"
 [[bin]]
 name = "deploy_pyth"
 path = "scripts/deploy_pyth.rs"
+
+[[test]]
+harness = true
+name = "integration_tests"
+path = "tests/harness.rs"
