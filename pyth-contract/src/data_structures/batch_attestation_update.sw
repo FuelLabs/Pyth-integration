@@ -1,15 +1,21 @@
 library;
 
 use ::errors::PythError;
-use ::data_structures::{data_source::*, price::*, wormhole_light::{StorageGuardianSet, WormholeVM}};
+use ::data_structures::price::*;
 use pyth_interface::data_structures::{data_source::DataSource, price::{PriceFeed, PriceFeedId}};
+use wormhole_light::data_structures::{
+    data_source::*,
+    guardian_set::StorageGuardianSet,
+    wormhole_vm::WormholeVM,
+};
 use std::{bytes::Bytes, hash::Hash};
 
 const BATCH_MAGIC: u32 = 0x50325748;
 
 pub struct BatchAttestationUpdate {
-    data: Bytes,
+    pub data: Bytes,
 }
+
 impl BatchAttestationUpdate {
     pub fn new(data: Bytes) -> Self {
         Self { data }
@@ -48,6 +54,7 @@ impl BatchAttestationUpdate {
         updated_ids
     }
 }
+
 pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64, u16, u16) {
     let mut index = 0;
     //Check header
@@ -87,7 +94,7 @@ pub fn parse_and_verify_batch_attestation_header(encoded_payload: Bytes) -> (u64
     index += 2;
     require(
         encoded_payload
-            .len == index + (attestation_size * number_of_attestations)
+            .len() == index + (attestation_size * number_of_attestations)
             .as_u64(),
         PythError::InvalidPayloadLength,
     );

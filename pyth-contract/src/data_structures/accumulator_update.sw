@@ -1,15 +1,22 @@
 library;
 
 use ::errors::PythError;
-use ::data_structures::{data_source::*, price::*, wormhole_light::{StorageGuardianSet, WormholeVM}};
+use ::data_structures::price::*;
 use pyth_interface::data_structures::{data_source::DataSource, price::{PriceFeed, PriceFeedId}};
+use wormhole_light::data_structures::{
+    data_source::*,
+    guardian_set::StorageGuardianSet,
+    wormhole_vm::WormholeVM,
+};
 use std::{bytes::Bytes, hash::Hash};
 
-pub struct AccumulatorUpdate {
-    data: Bytes,
-}
 const MINIMUM_ALLOWED_MINOR_VERSION = 0;
 const MAJOR_VERSION = 1;
+
+pub struct AccumulatorUpdate {
+    pub data: Bytes,
+}
+
 impl AccumulatorUpdate {
     pub fn new(data: Bytes) -> Self {
         Self { data }
@@ -39,11 +46,13 @@ impl AccumulatorUpdate {
         require(trailing_header_size.is_some(), PythError::InvalidHeaderSize);
         // skip trailing headers and update type
         let offset = 8 + trailing_header_size.unwrap().as_u64();
-        require(self.data.len >= offset, PythError::InvalidUpdateDataLength);
+        require(
+            self.data
+                .len() >= offset,
+            PythError::InvalidUpdateDataLength,
+        );
         offset
     }
-}
-impl AccumulatorUpdate {
     #[storage(read)]
     pub fn verify_and_parse(
         self,
@@ -53,7 +62,7 @@ impl AccumulatorUpdate {
 ) -> (u64, Bytes, u64, Bytes) {
         let encoded_offset = self.verify();
         let (_, slice) = self.data.split_at(encoded_offset);
-        let (encoded_slice, _) = slice.split_at(self.data.len - encoded_offset);
+        let (encoded_slice, _) = slice.split_at(self.data.len() - encoded_offset);
         let mut offset = 0;
         let wormhole_proof_size = u16::from_be_bytes([encoded_slice.get(offset).unwrap(), encoded_slice.get(offset + 1).unwrap()]).as_u64();
         offset += 2;
@@ -80,7 +89,7 @@ impl AccumulatorUpdate {
         payload_offset += 20;
         require(
             payload_offset <= encoded_payload
-                .len,
+                .len(),
             PythError::InvalidPayloadLength,
         );
         let number_of_updates = encoded_slice.get(offset);
@@ -92,8 +101,6 @@ impl AccumulatorUpdate {
         offset += 1;
         (offset, digest, number_of_updates.unwrap().as_u64(), encoded_slice)
     }
-}
-impl AccumulatorUpdate {
     #[storage(read, write)]
     pub fn update_price_feeds(
         self,
@@ -125,7 +132,7 @@ impl AccumulatorUpdate {
         }
         require(
             offset == encoded_data
-                .len,
+                .len(),
             PythError::InvalidUpdateDataLength,
         );
         (number_of_updates, updated_ids)

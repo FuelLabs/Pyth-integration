@@ -6,6 +6,15 @@ mod pyth_merkle_proof;
 mod data_structures;
 mod events;
 
+use ::errors::PythError;
+use ::utils::{difference, total_fee};
+use ::data_structures::{
+    batch_attestation_update::parse_and_verify_batch_attestation_header,
+    price::*,
+    update_type::UpdateType,
+};
+
+use ::events::{ConstructedEvent, NewGuardianSetEvent, UpdatedPriceFeedsEvent};
 use std::{
     block::timestamp,
     bytes::Bytes,
@@ -20,20 +29,7 @@ use std::{
         storage_map::StorageMap,
         storage_vec::*,
     },
-    u256::U256,
 };
-
-use ::errors::{PythError, WormholeError};
-use ::utils::{difference, total_fee};
-use ::data_structures::{
-    batch_attestation_update::parse_and_verify_batch_attestation_header,
-    data_source::*,
-    price::*,
-    update_type::UpdateType,
-    wormhole_light::*,
-};
-use ::events::{ConstructedEvent, NewGuardianSetEvent, UpdatedPriceFeedsEvent};
-
 use pyth_interface::{
     data_structures::{
         data_source::DataSource,
@@ -42,17 +38,25 @@ use pyth_interface::{
             PriceFeed,
             PriceFeedId,
         },
-        wormhole_light::{
-            GuardianSet,
-            WormholeProvider,
-        },
     },
     PythCore,
     PythInfo,
     PythInit,
+};
+use wormhole_light::{
+    data_structures::{
+        data_source::*,
+        guardian_set::{
+            GuardianSet,
+            GuardianSetUpgrade,
+            StorageGuardianSet,
+        },
+        wormhole_provider::WormholeProvider,
+        wormhole_vm::WormholeVM,
+    },
+    errors::WormholeError,
     WormholeGuardians,
 };
-
 use ownership::*;
 use src5::{SRC5, State};
 
@@ -131,9 +135,9 @@ impl PythCore for Contract {
         let required_fee = update_fee(update_data);
         require(msg_amount() >= required_fee, PythError::InsufficientFee);
 
-        let mut output_price_feeds: Vec<PriceFeed> = Vec::with_capacity(target_price_feed_ids.len);
+        let mut output_price_feeds: Vec<PriceFeed> = Vec::with_capacity(target_price_feed_ids.len());
         let mut i = 0;
-        while i < update_data.len {
+        while i < update_data.len() {
             let data = update_data.get(i).unwrap();
 
             match UpdateType::determine_type(data) {
@@ -169,7 +173,7 @@ impl PythCore for Contract {
 
                         i_2 += 1;
                     }
-                    require(offset == encoded.len, PythError::InvalidUpdateDataLength);
+                    require(offset == encoded.len(), PythError::InvalidUpdateDataLength);
                 },
                 UpdateType::BatchAttestation(batch_attestation_update) => {
                     let vm = WormholeVM::parse_and_verify_pyth_vm(
@@ -222,8 +226,8 @@ impl PythCore for Contract {
 
         require(
             target_price_feed_ids
-                .len == output_price_feeds
-                .len,
+                .len() == output_price_feeds
+                .len(),
             PythError::PriceFeedNotFoundWithinRange,
         );
 
@@ -263,13 +267,13 @@ impl PythCore for Contract {
     ) {
         require(
             price_feed_ids
-                .len == publish_times
-                .len,
+                .len() == publish_times
+                .len(),
             PythError::LengthOfPriceFeedIdsAndPublishTimesMustMatch,
         );
 
         let mut i = 0;
-        while i < price_feed_ids.len {
+        while i < price_feed_ids.len() {
             if latest_publish_time(price_feed_ids.get(i).unwrap()) < publish_times.get(i).unwrap()
             {
                 update_price_feeds(update_data);
@@ -330,7 +334,7 @@ fn price_unsafe(price_feed_id: PriceFeedId) -> Price {
 fn update_fee(update_data: Vec<Bytes>) -> u64 {
     let mut total_number_of_updates = 0;
     let mut i = 0;
-    while i < update_data.len {
+    while i < update_data.len() {
         let data = update_data.get(i).unwrap();
 
         match UpdateType::determine_type(data) {
@@ -361,7 +365,7 @@ fn update_price_feeds(update_data: Vec<Bytes>) {
 
     // let mut updated_price_feeds: Vec<PriceFeedId> = Vec::new(); // TODO: requires append for Vec
     let mut i = 0;
-    while i < update_data.len {
+    while i < update_data.len() {
         let data = update_data.get(i).unwrap();
 
         match UpdateType::determine_type(data) {
@@ -420,10 +424,10 @@ impl PythInit for Contract {
         initialize_ownership(DEPLOYER);
         only_owner();
 
-        require(data_sources.len > 0, PythError::InvalidDataSourcesLength);
+        require(data_sources.len() > 0, PythError::InvalidDataSourcesLength);
 
         let mut i = 0;
-        while i < data_sources.len {
+        while i < data_sources.len() {
             let data_source = data_sources.get(i).unwrap();
             storage.is_valid_data_source.insert(data_source, true);
             storage.valid_data_sources.push(data_source);
