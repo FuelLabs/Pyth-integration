@@ -8,10 +8,10 @@ An implementation of a [Pyth Network](https://pyth.network/) oracle contract in 
 
 The project provides four interfaces for interaction with the oracle contract:
 
-- [PythCore](./pyth-interface/src/interface.sw#L20) - provides the core functionality to required to utilise the oracle; getting fees, updating prices and fetching prices.
-- [PythInit](./pyth-interface/src/interface.sw#L250) - provides the functionality to setup the oracle's state.
-- [PythInfo](./pyth-interface/src/interface.sw#L255) - provides additional information about the oracle's state.
-- [WormholeGuardians](./pyth-interface/src/interface.sw#L283) - provides functionality to maintain and query the wormhole-state-elements used by the oracle.
+- [PythCore](./libraries/pyth-interface/src/interface.sw#L20) - provides the core functionality to required to utilise the oracle; getting fees, updating prices and fetching prices.
+- [PythInit](./libraries/pyth-interface/src/interface.sw#L250) - provides the functionality to setup the oracle's state.
+- [PythInfo](./libraries/pyth-interface/src/interface.sw#L255) - provides additional information about the oracle's state.
+- [WormholeGuardians](./libraries/wormhole-light/src/wormhole_light.sw#9) - provides functionality to maintain and query the wormhole-state-elements used by the oracle.
 
 ## Running the project
 
@@ -40,4 +40,5 @@ Before deploying the oracle contract; the `deployer` must be set to the address 
 Parameters for the `constructor()` method can be seen in the [tests of the method](./pyth-contract/tests/functions/pyth_init/constuctor.rs#L28), which at the time of writing uses the real up-to-date values as per Pyth's documentation and EVM integrations. Care should be taken to ensure that the most up-to-date values are used for the `constructor()` method's parameters.
 
 #### Fuel Beta-5 network deployment:
+
 The Pyth oracle contract has been deployed to Beta-5 at the `ContractId`: 0xe69daeb9fcf4c536c0fe402403b4b9e9822cc8b1f296e5d754be12cc384554c5.
