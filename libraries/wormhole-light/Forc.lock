@@ -1,0 +1,29 @@
+[[package]]
+name = "core"
+source = "path+from-root-C3992B43B72ADB8C"
+
+[[package]]
+name = "pyth_interface"
+source = "path+from-root-104B0C2963D564A8"
+dependencies = [
+    "src5",
+    "std",
+]
+
+[[package]]
+name = "src5"
+source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.3.3#4198b4b07449ad16104cc8a0501f3013670fdcfd"
+dependencies = ["std"]
+
+[[package]]
+name = "std"
+source = "git+https://github.com/fuellabs/sway?tag=v0.49.1#2ac7030570f22510b0ac2a7b5ddf7baa20bdc0e1"
+dependencies = ["core"]
+
+[[package]]
+name = "wormhole_light"
+source = "member"
+dependencies = [
+    "pyth_interface",
+    "std",
+]

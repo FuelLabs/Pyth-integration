@@ -1,0 +1,8 @@
+[project]
+authors = ["Fuel Labs <contact@fuel.sh>"]
+entry = "wormhole_light.sw"
+license = "Apache-2.0"
+name = "wormhole_light"
+
+[dependencies]
+pyth_interface = { path = "../pyth-interface" }
