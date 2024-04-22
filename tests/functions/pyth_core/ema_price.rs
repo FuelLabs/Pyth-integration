@@ -3,7 +3,6 @@ use crate::utils::interface::{
     pyth_init::constructor,
 };
 use crate::utils::setup::setup_environment;
-use fuels::types::Bytes;
 use pyth_sdk::{
     constants::{
         DEFAULT_SINGLE_UPDATE_FEE, TEST_ACCUMULATOR_ETH_USD_PRICE_FEED,
@@ -11,7 +10,7 @@ use pyth_sdk::{
         TEST_BATCH_USDC_USD_PRICE_FEED, TEST_EXTENDED_TIME_PERIOD,
     },
     pyth_utils::{
-        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes,
+        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa,
         test_accumulator_update_data_bytes, test_batch_update_data_bytes,
     },
 };
@@ -29,7 +28,7 @@ mod success {
             default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             TEST_EXTENDED_TIME_PERIOD, //As the contract checks against the current timestamp, this allows unit testing with old but real price updates
-            Bytes(guardian_set_upgrade_3_vaa_bytes()),
+            guardian_set_upgrade_3_vaa(),
         )
         .await;
 
@@ -67,7 +66,7 @@ mod success {
             default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             TEST_EXTENDED_TIME_PERIOD, //As the contract checks against the current timestamp, this allows unit testing with old but real price updates
-            Bytes(guardian_set_upgrade_3_vaa_bytes()),
+            guardian_set_upgrade_3_vaa(),
         )
         .await;
 

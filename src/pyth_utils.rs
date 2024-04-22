@@ -1,7 +1,7 @@
 use crate::constants::{
     BTC_USD_PRICE_FEED_ID, DEFAULT_SINGLE_UPDATE_FEE, ETH_USD_PRICE_FEED_ID,
-    GUARDIAN_SET_UPGRADE_3_VAA, PYTH_CONTRACT_BINARY_PATH, TEST_ACCUMULATOR_UPDATE_DATA,
-    TEST_BATCH_UPDATE_DATA, TEST_EXTENDED_TIME_PERIOD, UNI_USD_PRICE_FEED_ID,
+    GUARDIAN_SET_UPGRADE_3_VAA, GUARDIAN_SET_UPGRADE_4_VAA, PYTH_CONTRACT_BINARY_PATH,
+    TEST_ACCUMULATOR_UPDATE_DATA, TEST_BATCH_UPDATE_DATA, UNI_USD_PRICE_FEED_ID,
     USDC_USD_PRICE_FEED_ID,
 };
 use base64::{
@@ -99,7 +99,7 @@ impl Pyth {
     pub async fn update_price_feeds(
         &self,
         fee: u64,
-        update_data: &Vec<Bytes>,
+        update_data: &[Bytes],
     ) -> Result<FuelCallResponse<()>, Error> {
         self.instance
             .methods()
@@ -109,10 +109,7 @@ impl Pyth {
             .await
     }
 
-    pub async fn update_fee(
-        &self,
-        update_data: &Vec<Bytes>,
-    ) -> Result<FuelCallResponse<u64>, Error> {
+    pub async fn update_fee(&self, update_data: &[Bytes]) -> Result<FuelCallResponse<u64>, Error> {
         self.instance
             .methods()
             .update_fee(update_data.to_vec())
@@ -120,14 +117,18 @@ impl Pyth {
             .await
     }
 
-    pub async fn constructor(&self) -> Result<FuelCallResponse<()>, Error> {
+    pub async fn constructor(
+        &self,
+        valid_time_period_seconds: u64,
+        wormhole_guardian_set_upgrade: Bytes,
+    ) -> Result<FuelCallResponse<()>, Error> {
         self.instance
             .methods()
             .constructor(
                 default_data_sources(),
                 DEFAULT_SINGLE_UPDATE_FEE,
-                TEST_EXTENDED_TIME_PERIOD,
-                Bytes(guardian_set_upgrade_3_vaa_bytes()),
+                valid_time_period_seconds,
+                wormhole_guardian_set_upgrade,
             )
             .with_tx_policies(TxPolicies::default().with_gas_price(1))
             .call()
@@ -155,10 +156,21 @@ impl Pyth {
             wallet,
         })
     }
+
+    pub async fn current_guardian_set_index(&self) -> Result<FuelCallResponse<u32>, Error> {
+        self.instance
+            .methods()
+            .current_guardian_set_index()
+            .simulate()
+            .await
+    }
 }
 
-pub fn guardian_set_upgrade_3_vaa_bytes() -> Vec<u8> {
-    hex::decode(GUARDIAN_SET_UPGRADE_3_VAA).unwrap()
+pub fn guardian_set_upgrade_3_vaa() -> Bytes {
+    Bytes(hex::decode(GUARDIAN_SET_UPGRADE_3_VAA).unwrap())
+}
+pub fn guardian_set_upgrade_4_vaa() -> Bytes {
+    Bytes(hex::decode(GUARDIAN_SET_UPGRADE_4_VAA).unwrap())
 }
 
 pub fn default_price_feed_ids() -> Vec<Bits256> {
