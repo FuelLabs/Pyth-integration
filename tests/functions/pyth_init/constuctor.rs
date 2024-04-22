@@ -11,12 +11,11 @@ use pyth_sdk::{
         DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD, UPGRADE_3_VAA_GOVERNANCE_ACTION_HASH,
     },
     pyth_utils::{
-        default_data_sources, guardian_set_upgrade_3_vaa_bytes, ConstructedEvent, State,
-        WormholeProvider,
+        default_data_sources, guardian_set_upgrade_3_vaa, ConstructedEvent, State, WormholeProvider,
     },
 };
 
-use fuels::types::{Bits256, Bytes};
+use fuels::types::Bits256;
 
 mod success {
 
@@ -63,7 +62,7 @@ mod success {
             default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             DEFAULT_VALID_TIME_PERIOD,
-            Bytes(guardian_set_upgrade_3_vaa_bytes()),
+            guardian_set_upgrade_3_vaa(),
         )
         .await;
 

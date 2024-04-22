@@ -5,11 +5,10 @@ use crate::utils::interface::{
 };
 
 use crate::utils::setup::setup_environment;
-use fuels::types::Bytes;
 use pyth_sdk::{
     constants::{DEFAULT_SINGLE_UPDATE_FEE, DEFAULT_VALID_TIME_PERIOD},
     pyth_utils::{
-        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa_bytes,
+        default_data_sources, default_price_feed_ids, guardian_set_upgrade_3_vaa,
         test_accumulator_update_data_bytes, test_batch_update_data_bytes,
     },
 };
@@ -26,7 +25,7 @@ mod success {
             default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             DEFAULT_VALID_TIME_PERIOD,
-            Bytes(guardian_set_upgrade_3_vaa_bytes()),
+            guardian_set_upgrade_3_vaa(),
         )
         .await;
 
@@ -72,7 +71,7 @@ mod success {
             default_data_sources(),
             DEFAULT_SINGLE_UPDATE_FEE,
             DEFAULT_VALID_TIME_PERIOD,
-            Bytes(guardian_set_upgrade_3_vaa_bytes()),
+            guardian_set_upgrade_3_vaa(),
         )
         .await;
 
