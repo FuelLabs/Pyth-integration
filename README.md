@@ -40,4 +40,4 @@ Before deploying the oracle contract; the `deployer` must be set to the address 
 Parameters for the `constructor()` method can be seen in the [tests of the method](./pyth-contract/tests/functions/pyth_init/constuctor.rs#L28), which at the time of writing uses the real up-to-date values as per Pyth's documentation and EVM integrations. Care should be taken to ensure that the most up-to-date values are used for the `constructor()` method's parameters.
 
 #### Fuel Beta-5 network deployment:
-The Pyth oracle contract has been deployed to Beta-5 at the `ContractId`: 0xe69daeb9fcf4c536c0fe402403b4b9e9822cc8b1f296e5d754be12cc384554c5.
+The Pyth oracle contract has been deployed to Beta-5 at the `ContractId`: 0x3cd5005f23321c8ae0ccfa98fb07d9a5ff325c483f21d2d9540d6897007600c9.
