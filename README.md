@@ -1,5 +1,9 @@
 # Pyth-integration
 
+## ⚠️ Archived
+
+Maintenance of the Pyth oracle on Fuel has been officially handed-off to the Pyth team. This body of work and further development has been migrated to: https://github.com/pyth-network/pyth-crosschain/tree/main/target_chains/fuel/contracts
+
 > **_NOTE:_** The project is a WIP.
 
 An implementation of a [Pyth Network](https://pyth.network/) oracle contract in Sway. Utilising minimal, internal [Wormhole](https://docs.wormhole.com/wormhole/) functionality and state.
